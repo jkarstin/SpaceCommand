@@ -5,7 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 
-import ph.games.scg.screen.MainMenuScreen;
+import ph.games.scg.screen.GameScreen;
 import ph.games.scg.util.Assets;
 import ph.games.scg.util.Settings;
 
@@ -41,12 +41,12 @@ public class Core extends Game {
 	public void create () {
 		new Assets();
 		Settings.load();
-		Core.setActiveScreen(new MainMenuScreen());
+		Core.setActiveScreen(new GameScreen());
 	}
 
 	@Override
 	public void render () {
-		Gdx.gl.glClearColor(1, 0, 0, 1);
+		Gdx.gl.glClearColor(0, 0, 0, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 		if (this.screen != null) this.screen.render(Gdx.graphics.getDeltaTime());
 	}

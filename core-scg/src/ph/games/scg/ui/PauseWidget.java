@@ -1,8 +1,10 @@
 package ph.games.scg.ui;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
@@ -44,6 +46,19 @@ public class PauseWidget extends Actor {
 	}
 	
 	private void setListeners() {
+		this.addListener(new InputListener() {
+			
+			@Override
+			public boolean keyDown(InputEvent event, int keycode) {
+				if (keycode == Input.Keys.ESCAPE) {
+					handleUpdates();
+					return true;
+				}
+				return false;
+			}
+			
+		});
+		
 		this.closeDialogue.addListener(new ClickListener() {
 			
 			@Override
