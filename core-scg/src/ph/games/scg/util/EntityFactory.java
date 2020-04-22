@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.FloatAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader;
+import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.model.data.ModelData;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.TextureProvider;
@@ -37,6 +38,7 @@ import ph.games.scg.system.BulletSystem;
 public class EntityFactory {
 
 	private static Model playerModel;
+	private static Model spaceshipModel;
 
 	//Static "constructor"
 	static {
@@ -51,6 +53,7 @@ public class EntityFactory {
 						),
 				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates
 				);
+		spaceshipModel = null;
 	}
 
 	public static Entity createStaticEntity(Model model, float x, float y, float z) {
@@ -109,7 +112,45 @@ public class EntityFactory {
 		entity.add(new PlayerComponent());
 		return entity;
 	}
-
+	
+	public static Entity createSpaceship(String g3djFilename, BulletSystem bulletSystem, float x, float y, float z) {
+	      Entity entity = new Entity();
+	      
+	      ModelLoader<?> modelLoader = new G3dModelLoader(new JsonReader());
+	      ModelData modelData = modelLoader.loadModelData(Gdx.files.internal("blender/" + g3djFilename));
+	      if (spaceshipModel == null) {
+	         spaceshipModel = new Model(modelData, new TextureProvider.FileTextureProvider());
+	         for (Node node : spaceshipModel.nodes) node.scale.scl(0.125f);
+	         spaceshipModel.calculateTransforms();
+	      }
+	      ModelComponent modelComponent = new ModelComponent(spaceshipModel, x, y, z);
+	      entity.add(modelComponent);
+	      
+	      CharacterComponent characterComponent = new CharacterComponent();
+	      characterComponent.ghostObject = new btPairCachingGhostObject();
+	      characterComponent.ghostObject.setWorldTransform(modelComponent.instance.transform);
+	      characterComponent.ghostShape = new btCapsuleShapeZ(2f, 2f);
+	      characterComponent.ghostObject.setCollisionShape(characterComponent.ghostShape);
+	      characterComponent.ghostObject.setCollisionFlags(btCollisionObject.CollisionFlags.CF_CHARACTER_OBJECT);
+	      characterComponent.characterController = new btKinematicCharacterController(
+	         characterComponent.ghostObject,
+	         characterComponent.ghostShape,
+	         0.35f,
+	         Vector3.Y
+	      );
+	      characterComponent.ghostObject.userData = entity;
+	      entity.add(characterComponent);
+	      
+	      bulletSystem.collisionWorld.addCollisionObject(
+	         entity.getComponent(CharacterComponent.class).ghostObject,
+	         (short)btBroadphaseProxy.CollisionFilterGroups.CharacterFilter,
+	         (short)btBroadphaseProxy.CollisionFilterGroups.AllFilter
+	      );
+	      bulletSystem.collisionWorld.addAction(entity.getComponent(CharacterComponent.class).characterController);
+	      
+	      return entity;
+	}
+	
 	private static Entity createCharacter(BulletSystem bulletSystem, float x, float y, float z) {
 		Entity entity = new Entity();
 

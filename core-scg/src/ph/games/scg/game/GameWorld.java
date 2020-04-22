@@ -59,6 +59,7 @@ public class GameWorld {
 	private void addEntities() {
 		loadLevel();
 		createPlayer(5f, 3f, 5f);
+		createSpaceship(2f, 3f, 1f);
 	}
 
 	private void loadLevel() {
@@ -69,7 +70,12 @@ public class GameWorld {
 		this.character = EntityFactory.createPlayer(this.bulletSystem, x, y, z);
 		this.engine.addEntity(this.character);
 	}
-
+	
+	private void createSpaceship(float x, float y, float z) {
+		Entity spaceshipEntity = EntityFactory.createSpaceship("spaceship.g3dj", this.bulletSystem, x, y, z);
+		this.engine.addEntity(spaceshipEntity);
+	}
+	
 	public void dispose() {
 		disposeCharacter();
 		disposeSystems();
