@@ -1,0 +1,65 @@
+{
+com.badlogic.gdx.graphics.g2d.BitmapFont: {
+	OpenSans: {
+		file: OpenSans.fnt
+	}
+}
+com.badlogic.gdx.graphics.Color: {
+	Black: {
+		r: 0
+		g: 0
+		b: 0
+		a: 1
+	}
+	Ph-Teal: {
+		r: 0
+		g: 0.7647059
+		b: 0.6627451
+		a: 1
+	}
+	Red: {
+		r: 1
+		g: 0
+		b: 0
+		a: 1
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Button$ButtonStyle: {
+	default: {
+		up: label
+		down: label
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Label$LabelStyle: {
+	default: {
+		font: OpenSans
+		background: label
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.TextButton$TextButtonStyle: {
+	default: {
+		font: OpenSans
+		fontColor: Black
+		up: label
+		down: label
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.TextField$TextFieldStyle: {
+	default: {
+		font: OpenSans
+		fontColor: Black
+		background: label
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.TextTooltip$TextTooltipStyle: {
+	default: {
+		label: default
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Window$WindowStyle: {
+	default: {
+		background: label
+		titleFont: OpenSans
+	}
+}
+}
