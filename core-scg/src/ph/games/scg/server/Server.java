@@ -17,7 +17,7 @@ import java.net.SocketTimeoutException;
 import com.badlogic.gdx.utils.Array;
 
 public class Server {
-
+	
 	public static final int DEFAULT_BACKLOG = 16;
 	public static final int DEFAULT_TIMEOUT = 10;
 
@@ -41,6 +41,10 @@ public class Server {
 	}
 	public Server(int port) { this(port, Server.DEFAULT_BACKLOG, Server.DEFAULT_TIMEOUT); }
 
+	public void update(float dt) {
+		
+	}
+	
 	public Server open() {
 		if (this.serverSocket != null && !this.serverSocket.isClosed()) return this;
 
