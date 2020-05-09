@@ -1,4 +1,4 @@
-package ph.games.scg;
+package ph.games.scg.game;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;

@@ -10,7 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
-import ph.games.scg.Core;
+import ph.games.scg.game.Core;
 import ph.games.scg.screen.GameScreen;
 import ph.games.scg.util.Assets;
 import ph.games.scg.util.Settings;

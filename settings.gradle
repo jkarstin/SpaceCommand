@@ -1,1 +1,1 @@
-include 'desktop-scg', 'core-scg'
+include 'desktop-scg', 'server-scg', 'core-scg'

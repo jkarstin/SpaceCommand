@@ -17,7 +17,7 @@ buildscript {
 
 allprojects {
 
-    version = '1.0'
+    version = '0.0.1'
     ext {
         appName = "space-command"
         gdxVersion = '1.9.10'
@@ -38,6 +38,24 @@ allprojects {
 }
 
 project(":desktop-scg") {
+    apply plugin: "java-library"
+
+
+    dependencies {
+        implementation project(":core-scg")
+        api "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
+        api "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+        api "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
+        api "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
+        api "com.badlogicgames.gdx:gdx-controllers-platform:$gdxVersion:natives-desktop"
+        api "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
+        api "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
+        api "com.badlogicgames.gdx:gdx-bullet-platform:$gdxVersion:natives-desktop"
+        
+    }
+}
+
+project(":server-scg") {
     apply plugin: "java-library"
 
 

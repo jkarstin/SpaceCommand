@@ -11,9 +11,9 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 
-import ph.games.scg.Core;
 import ph.games.scg.component.AnimationComponent;
 import ph.games.scg.component.ModelComponent;
+import ph.games.scg.game.Core;
 import ph.games.scg.util.Settings;
 
 public class RenderSystem extends EntitySystem {

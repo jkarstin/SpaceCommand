@@ -4,7 +4,7 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
-import ph.games.scg.Core;
+import ph.games.scg.game.Core;
 
 public abstract class BaseScreen implements Screen {
 	

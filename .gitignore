@@ -37,8 +37,9 @@ com_crashlytics_export_strings.xml
 .project
 .metadata/
 /android/bin/
-/core/bin/
-/desktop/bin/
+/core-scg/bin/
+/desktop-scg/bin/
+/server-scg/bin/
 /html/bin/
 /ios/bin/
 /ios-moe/bin/
@@ -55,40 +56,45 @@ com_crashlytics_export_strings.xml
 
 /nbproject/private/
 /android/nbproject/private/
-/core/nbproject/private/
-/desktop/nbproject/private/
+/core-scg/nbproject/private/
+/desktop-scg/nbproject/private/
+/server-scg/nbproject/private/
 /html/nbproject/private/
 /ios/nbproject/private/
 /ios-moe/nbproject/private/
 
 /build/
 /android/build/
-/core/build/
-/desktop/build/
+/core-scg/build/
+/desktop-scg/build/
+/server-scg/build/
 /html/build/
 /ios/build/
 /ios-moe/build/
 
 /nbbuild/
 /android/nbbuild/
-/core/nbbuild/
-/desktop/nbbuild/
+/core-scg/nbbuild/
+/desktop-scg/nbbuild/
+/server-scg/nbbuild/
 /html/nbbuild/
 /ios/nbbuild/
 /ios-moe/nbbuild/
 
 /dist/
 /android/dist/
-/core/dist/
-/desktop/dist/
+/core-scg/dist/
+/desktop-scg/dist/
+/server-scg/dist/
 /html/dist/
 /ios/dist/
 /ios-moe/dist/
 
 /nbdist/
 /android/nbdist/
-/core/nbdist/
-/desktop/nbdist/
+/core-scg/nbdist/
+/desktop-scg/nbdist/
+/server-scg/nbdist/
 /html/nbdist/
 /ios/nbdist/
 /ios-moe/nbdist/
@@ -103,8 +109,9 @@ nb-configuration.xml
 gradle-app.setting
 /build/
 /android/build/
-/core/build/
-/desktop/build/
+/core-scg/build/
+/desktop-scg/build/
+/server-scg/build/
 /html/build/
 /ios/build/
 /ios-moe/build/
