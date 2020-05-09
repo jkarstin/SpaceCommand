@@ -12,12 +12,11 @@ import ph.games.scg.system.BulletSystem;
 import ph.games.scg.system.PlayerSystem;
 import ph.games.scg.system.RenderSystem;
 import ph.games.scg.ui.GameUI;
+import ph.games.scg.util.Debug;
 import ph.games.scg.util.EntityFactory;
 import ph.games.scg.util.Settings;
 
 public class GameWorld {
-
-	private static final boolean debug = true;
 
 	private BulletSystem bulletSystem;
 	private DebugDrawer debugDrawer;
@@ -38,7 +37,7 @@ public class GameWorld {
 	}
 
 	private void setDebug() {
-		if (GameWorld.debug) {
+		if (Debug.isOn()) {
 			this.debugDrawer = new DebugDrawer();
 			this.debugDrawer.setDebugMode(btIDebugDraw.DebugDrawModes.DBG_MAX_DEBUG_DRAW_MODE);
 		}
@@ -53,7 +52,7 @@ public class GameWorld {
 		this.engine.addSystem(this.renderSystem = new RenderSystem());
 		this.engine.addSystem(this.bulletSystem = new BulletSystem());
 		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI));
-		if (GameWorld.debug) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
+		if (Debug.isOn()) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
 	}
 
 	private void addEntities() {
@@ -115,7 +114,7 @@ public class GameWorld {
 
 	private void renderWorld(float dt) {
 		this.engine.update(dt);
-		if (GameWorld.debug) {
+		if (Debug.isOn()) {
 			this.debugDrawer.begin(this.renderSystem.getPerspectiveCamera());
 			this.bulletSystem.collisionWorld.debugDrawWorld();
 			this.debugDrawer.end();
