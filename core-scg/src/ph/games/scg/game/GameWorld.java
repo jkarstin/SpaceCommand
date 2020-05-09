@@ -17,7 +17,7 @@ import ph.games.scg.util.Settings;
 
 public class GameWorld {
 
-	private static final boolean debug = false;
+	private static final boolean debug = true;
 
 	private BulletSystem bulletSystem;
 	private DebugDrawer debugDrawer;

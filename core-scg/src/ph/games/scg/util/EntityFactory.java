@@ -39,6 +39,7 @@ public class EntityFactory {
 
 	private static Model playerModel;
 	private static Model spaceshipModel;
+	private static final float BLENDER_MODEL_SCALE = 0.01f;
 
 	//Static "constructor"
 	static {
@@ -116,11 +117,11 @@ public class EntityFactory {
 	public static Entity createSpaceship(String g3djFilename, BulletSystem bulletSystem, float x, float y, float z) {
 	      Entity entity = new Entity();
 	      
-	      ModelLoader<?> modelLoader = new G3dModelLoader(new JsonReader());
-	      ModelData modelData = modelLoader.loadModelData(Gdx.files.internal("blender/" + g3djFilename));
 	      if (spaceshipModel == null) {
+	    	  ModelLoader<?> modelLoader = new G3dModelLoader(new JsonReader());
+		      ModelData modelData = modelLoader.loadModelData(Gdx.files.internal("blender/" + g3djFilename));
 	         spaceshipModel = new Model(modelData, new TextureProvider.FileTextureProvider());
-	         for (Node node : spaceshipModel.nodes) node.scale.scl(0.125f);
+	         for (Node node : spaceshipModel.nodes) node.scale.scl(BLENDER_MODEL_SCALE);
 	         spaceshipModel.calculateTransforms();
 	      }
 	      ModelComponent modelComponent = new ModelComponent(spaceshipModel, x, y, z);
@@ -133,10 +134,10 @@ public class EntityFactory {
 	      characterComponent.ghostObject.setCollisionShape(characterComponent.ghostShape);
 	      characterComponent.ghostObject.setCollisionFlags(btCollisionObject.CollisionFlags.CF_CHARACTER_OBJECT);
 	      characterComponent.characterController = new btKinematicCharacterController(
-	         characterComponent.ghostObject,
-	         characterComponent.ghostShape,
-	         0.35f,
-	         Vector3.Y
+	         characterComponent.ghostObject, //Ghost Object
+	         characterComponent.ghostShape,  //Convex Shape
+	         0.35f,                          //Step Height
+	         Vector3.Y                       //Up Vector
 	      );
 	      characterComponent.ghostObject.userData = entity;
 	      entity.add(characterComponent);
