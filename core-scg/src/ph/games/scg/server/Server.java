@@ -11,6 +11,7 @@ package ph.games.scg.server;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -84,7 +85,7 @@ public class Server implements ILoggable {
 			this.hostaddress = InetAddress.getLocalHost().getHostAddress();
 			this.opened = true;
 			this.uptime = 0f;
-			Debug.log("Successfully opened server:" + this);
+			Debug.log("Successfully opened server: " + this);
 		} catch (Exception e) {
 			Debug.warn("Failed to open server: " + this);
 			e.printStackTrace();
@@ -134,6 +135,7 @@ public class Server implements ILoggable {
 				//Attempt to get message
 				try {
 					InputStream istream = sock.getInputStream();
+					
 					int len = Math.min(istream.available(), BYTE_BUFFER_SIZE);
 					int num = istream.read(this.buff, 0, len);
 					Debug.logv("Bytes read: " + num);
@@ -143,16 +145,15 @@ public class Server implements ILoggable {
 							c = (char)(this.buff[b]);
 							Debug.logv("[" + b + "]\t" + c);
 							if (c == '\n') {
-								this.messages.add(segment);
-								Debug.log("Message received: " + segment);
-								segment = "";
+								this.messages.add(this.segment);
+								this.segment = "";
 							}
-							else segment += (char)(this.buff[b]);
+							else this.segment += (char)(this.buff[b]);
 						}
 						
-						Debug.logv("Messages [" + this.messages.size() + "]:");
+						Debug.log("Received Messages [" + this.messages.size() + "]:");
 						for (String message : this.messages) {
-							Debug.logv(message);
+							Debug.log(message);
 						}
 					}
 				}
@@ -220,10 +221,13 @@ public class Server implements ILoggable {
 				case LOGIN:
 					break;
 				case VERSION:
+					String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
+					write(((VersionCommand)command).getSock(), version);
 					break;
 				case LOGOUT:
 					break;
 				case SAY:
+					this.broadcastQ.add(((SayCommand)command).getMessage());
 					break;
 				case TELL:
 					break;
@@ -242,6 +246,7 @@ public class Server implements ILoggable {
 				//Broadcast message
 				Debug.log("Broadcasting message to server... [" + message + "]");
 			}
+			this.broadcastQ.clear();
 		}
 	}
 	
@@ -262,6 +267,29 @@ public class Server implements ILoggable {
 	
 	public float getUptime() {
 		return this.uptime;
+	}
+	
+	//Write ArrayList<String> contents to Socket's OutputStream
+	private void write(Socket sock, ArrayList<String> messages) {
+		if (sock != null) try {
+			OutputStream ostream = sock.getOutputStream();
+			for (String message : messages) {
+				message += "\n";
+				byte[] buff = message.getBytes();
+				ostream.write(buff);
+			}
+		} catch (IOException e) { e.printStackTrace(); }
+	}
+	
+	//Write String to Socket's OutputStream
+	private void write(Socket sock, String message) {
+		Debug.log("Writing to socket... [sock=" + sock + " message=" + message + "]");
+		if (sock != null) try {
+			OutputStream ostream = sock.getOutputStream();
+			message += "\n";
+			byte[] buff = message.getBytes();
+			ostream.write(buff);
+		} catch (IOException e) { e.printStackTrace(); }
 	}
 	
 	public String pullToken() {
