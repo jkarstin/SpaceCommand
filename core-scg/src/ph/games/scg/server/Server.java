@@ -16,14 +16,23 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
-
-import com.badlogic.gdx.physics.bullet.linearmath.int4;
+import java.util.NoSuchElementException;
+import java.util.StringTokenizer;
 
 import ph.games.scg.server.command.Command;
+import ph.games.scg.server.command.LoginCommand;
+import ph.games.scg.server.command.LogoutCommand;
+import ph.games.scg.server.command.SayCommand;
+import ph.games.scg.server.command.TellCommand;
+import ph.games.scg.server.command.VersionCommand;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.ILoggable;
 
 public class Server implements ILoggable {
+	
+	private static final int BYTE_BUFFER_SIZE = 64;
+	private static final int VERSION_LO = 1;
+	private static final int VERSION_HI = 0;
 	
 	//Server socket
 	private ServerSocket serverSock;
@@ -36,6 +45,12 @@ public class Server implements ILoggable {
 	//Number of milliseconds the server will attempt to look for clients before stopping
 	private int soTimeout;
 	
+	//Message reading
+	private byte[] buff;
+	private ArrayList<String> messages;
+	private String segment;
+	private StringTokenizer stoker;
+	
 	//Client ArrayList
 	private ArrayList<Socket> socks;
 	//Command Queue
@@ -43,14 +58,17 @@ public class Server implements ILoggable {
 	//Broadcast Queue
 	private ArrayList<String> broadcastQ;
 	
-	//Command definitions?
-	
 	public Server(int port, int timeout) {
 		this.serverSock = null;
 		this.port = port;
 		this.opened = false;
 		this.uptime = 0f;
 		this.soTimeout = timeout;
+		
+		this.buff = new byte[BYTE_BUFFER_SIZE];
+		this.messages = new ArrayList<String>();
+		this.segment = "";
+		this.stoker = null;
 		
 		this.socks = new ArrayList<Socket>();
 		this.commandQ = new ArrayList<Command>();
@@ -76,7 +94,7 @@ public class Server implements ILoggable {
 	public void update(float dt) {
 		if (this.isOpen()) {
 			this.uptime += dt;
-			Debug.logv("Server uptime: " + this.uptime + " ms");
+			Debug.logv("Server uptime: " + this.uptime + " s");
 			//Accept new clients
 			this.acceptClients();
 			//Look for commands from clients
@@ -91,28 +109,20 @@ public class Server implements ILoggable {
 	private void acceptClients() {
 		if (this.isOpen()) {
 			Socket sock=null;
-			boolean halt=false;
-			int count=0;
 			
-			do {
-				try {
-					sock = this.serverSock.accept();
-				}
-				catch (SocketTimeoutException e) {
-					Debug.logv("Server timeout reached. Accepted " + count + " new clients.");
-					halt = true;
-				}
-				catch (Exception e) {
-					Debug.warn("Failed to accept client!");
-					e.printStackTrace();
-				}
-		
-				if (sock != null) {
-					this.socks.add(sock);
-					count++;
-					System.out.println("Accepted client: " + sock.toString());
-				}
-			} while (!halt);
+			try { sock = this.serverSock.accept(); }
+			catch (SocketTimeoutException e) {
+				Debug.logv("Server timeout reached");
+			}
+			catch (Exception e) {
+				Debug.warn("Failed to accept client!");
+				e.printStackTrace();
+			}
+	
+			if (sock != null) {
+				this.socks.add(sock);
+				Debug.log("Accepted client: " + sock.toString());
+			}
 		}
 	}
 	
@@ -120,23 +130,91 @@ public class Server implements ILoggable {
 		if (this.isOpen()) {
 			//Attempt to read in server messages
 			for (Socket sock : this.socks) {
+				
+				//Attempt to get message
 				try {
 					InputStream istream = sock.getInputStream();
-					int len = istream.available();
-					byte[] readBytes = new byte[len];
-					int num = istream.read(readBytes);
-					for (int b=0; b < num; b++) {
-						Debug.logv("Read byte [" + b + "]: " + readBytes[b]);
+					int len = Math.min(istream.available(), BYTE_BUFFER_SIZE);
+					int num = istream.read(this.buff, 0, len);
+					Debug.logv("Bytes read: " + num);
+					if (num > 0) {
+						char c;
+						for (int b=0; b < num; b++) {
+							c = (char)(this.buff[b]);
+							Debug.logv("[" + b + "]\t" + c);
+							if (c == '\n') {
+								this.messages.add(segment);
+								Debug.log("Message received: " + segment);
+								segment = "";
+							}
+							else segment += (char)(this.buff[b]);
+						}
+						
+						Debug.logv("Messages [" + this.messages.size() + "]:");
+						for (String message : this.messages) {
+							Debug.logv(message);
+						}
 					}
 				}
 				catch (IOException e) { e.printStackTrace(); }
 				
+				//Look for command if message was received
+				for (String message : this.messages) {
+					this.stoker = new StringTokenizer(message);
+					String token;
+					
+					String username = "";
+					String password = "";
+					message = "";
+					while ((token = pullToken()) != null) {
+						switch (token) {
+						case "\\login":
+							username = pullToken();
+							password = pullToken();
+							if (username == null) Debug.warn("Invalid use of \\login command. Requires username value");
+							else {
+								if (password == null) password = "";
+								this.commandQ.add(new LoginCommand(sock, username, password));
+							}
+							break;
+						case "\\version":
+							this.commandQ.add(new VersionCommand(sock));
+							break;
+						case "\\logout":
+							this.commandQ.add(new LogoutCommand(sock));
+							break;
+						case "\\say":
+							//build message from remaining tokens
+							if ((token = pullToken()) != null) message = token;
+							while ((token = pullToken()) != null) message += " " + token;
+							this.commandQ.add(new SayCommand(sock, message));
+							break;
+						case "\\tell":
+							username = pullToken();
+							if (username == null) Debug.warn("Invalid use of \\tell command. Requires username value");
+							else {
+								//build message from remaining tokens
+								if ((token = pullToken()) != null) message = token;
+								while ((token = pullToken()) != null) message += " " + token;
+								this.commandQ.add(new TellCommand(sock, username, message));
+							}
+							break;
+						default:
+							Debug.log("Unsupported or unrecognized command delivered: " + token);
+							break;
+						}
+					}
+				}
+				this.messages.clear();
 			}
 		}
 	}
 	
 	private void executeCommands() {
 		if (this.isOpen()) {
+			
+			Debug.logv(this.commandQ);
+			
 			for (Command command : this.commandQ) {
 				switch (command.getType()) {
 				case LOGIN:
@@ -153,6 +231,8 @@ public class Server implements ILoggable {
 					break;
 				}
 			}
+			
+			this.commandQ.clear();
 		}
 	}
 	
@@ -169,7 +249,7 @@ public class Server implements ILoggable {
 		if (this.serverSock != null) try {
 			this.serverSock.close();
 			this.opened = false;
-			Debug.log("Successfully closed server: " + this + " uptime=" + this.uptime + " ms");
+			Debug.log("Successfully closed server: " + this + " uptime=" + this.uptime + " s");
 		} catch (Exception e) {
 			e.printStackTrace();
 			Debug.warn("Failed to close server: " + this);
@@ -184,6 +264,17 @@ public class Server implements ILoggable {
 		return this.uptime;
 	}
 	
+	public String pullToken() {
+		if (this.stoker == null) return null;
+		try {
+			String token = this.stoker.nextToken();
+			return token;
+		} catch (NoSuchElementException e) {
+			Debug.logv("No more tokens to pull");
+			return null;
+		}
+	}
+	
 	@Override
 	public String toString() {
 		String str = serverSock.toString();
@@ -191,142 +282,4 @@ public class Server implements ILoggable {
 		return str;
 	}
 	
-//********* ORIGINAL SERVER DESIGN *********
-//	public static final int DEFAULT_BACKLOG = 16;
-//	public static final int DEFAULT_TIMEOUT = 10;
-//
-//	private int port;
-//	private int clientBacklog;
-//	private int soTimeout;
-//	private ServerSocket serverSocket;
-//	private String hostName;
-//	private String hostAddress;
-//	//private int hostPort;
-//	private Array<Socket> clientSockets;
-//	private byte[] readBytes;
-
-//	public Server(int port, int backlog, int timeout) {
-//		this.port = port;
-//		this.clientBacklog = backlog;
-//		this.soTimeout = timeout;
-//
-//		this.clientSockets = new Array<Socket>(this.clientBacklog);
-//		this.readBytes = new byte[100];
-//	}
-//	public Server(int port) { this(port, Server.DEFAULT_BACKLOG, Server.DEFAULT_TIMEOUT); }
-	
-//	public Server open() {
-//		if (this.serverSocket != null && !this.serverSocket.isClosed()) return this;
-//
-//		try {
-//			this.serverSocket = new ServerSocket(this.port, this.clientBacklog);
-//			this.serverSocket.setSoTimeout(this.soTimeout);
-//			this.hostName = InetAddress.getLocalHost().getHostName();
-//			this.hostAddress = InetAddress.getLocalHost().getHostAddress();
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//
-//		return this;
-//	}
-
-//	public Client accept() {
-//		if (this.serverSocket == null || this.serverSocket.isClosed() || this.clientSockets.size >= this.clientBacklog) return null;
-//
-//		Socket clientSocket = null;
-//
-//		try {
-//			clientSocket = this.serverSocket.accept();
-//		}
-//		catch (SocketTimeoutException e) {
-//			//System.out.println("Server Timeout");
-//			return null;
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//			return null;
-//		}
-//
-//		if (clientSocket != null) {
-//			this.clientSockets.add(clientSocket);
-//		}
-//
-//		System.out.println("Accepted client: " + clientSocket.toString());
-//
-//		return new Client(clientSocket);
-//	}
-
-//	public Server close() {
-//		if (this.serverSocket.isClosed()) return this;
-//
-//		try {
-//			if (!this.serverSocket.isClosed()) this.serverSocket.close();
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//
-//		return this;
-//	}
-
-//	public int read(Client client) {
-//		try {
-//			return client.getInStream().read(this.readBytes);
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//
-//		return 0;
-//	}
-
-//	public void write(Client client, byte[] bytes, int n) {
-//		try {
-//			client.getOutStream().write(bytes, 0, n);
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-
-//	public void broadcast(byte[] bytes, int n) {
-//		for (Socket client : this.clientSockets) {
-//			try {
-//				client.getOutputStream().write(bytes, 0, n);
-//			}
-//			catch (Exception e) {
-//				e.printStackTrace();
-//			}
-//		}
-//	}
-
-//	public byte[] getReadBytes() {
-//		return this.readBytes;
-//	}
-//
-//	public int clientCount() {
-//		return this.clientSockets.size;
-//	}
-//
-//	public String getHostName() {
-//		return this.hostName;
-//	}
-//
-//	public String getHostAddress() {
-//		return this.hostAddress;
-//	}
-//
-//	public String toString() {
-//		String str = serverSocket.toString() + "\n" +
-//				"Host Name: " + this.hostName + "\n" +
-//				"Host Address: " + this.hostAddress;
-//		return str;
-//	}
-//
-//	public String getShortTag() {
-//		String tag = "S" + this.port;
-//		return tag;
-//	}
-
 }

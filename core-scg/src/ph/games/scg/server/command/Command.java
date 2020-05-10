@@ -32,7 +32,7 @@ public abstract class Command implements ILoggable {
 	
 	@Override
 	public String toString() {
-		return "Command";
+		return "COMMAND";
 	}
 
 }

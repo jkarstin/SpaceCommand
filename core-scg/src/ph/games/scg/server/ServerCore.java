@@ -11,7 +11,7 @@ public class ServerCore extends Game {
 		
 	@Override
 	public void create() {
-		Debug.setMode(DEBUG_MODE.ON_VERBOSE);
+		Debug.setMode(DEBUG_MODE.ON);
 		new Assets();
 		this.setScreen(new ServerScreen());
 	}

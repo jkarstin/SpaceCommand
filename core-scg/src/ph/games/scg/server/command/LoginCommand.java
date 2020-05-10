@@ -2,6 +2,8 @@ package ph.games.scg.server.command;
 
 import java.net.Socket;
 
+import ph.games.scg.util.Debug;
+
 public class LoginCommand extends Command {
 	
 	private String username;
@@ -12,6 +14,8 @@ public class LoginCommand extends Command {
 		
 		this.username = username;
 		this.password = password;
+		
+		Debug.logv("New Command: " + this);
 	}
 	
 	public String getUsername() {
@@ -20,5 +24,10 @@ public class LoginCommand extends Command {
 	
 	public String getPassword() {
 		return this.password;
+	}
+	
+	@Override
+	public String toString() {
+		return super.toString() + "_LOGIN{sock=" + this.getSock() + " username=" + this.username + " password=" + this.password + "}";
 	}
 }

@@ -122,8 +122,8 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
       this.rayTestCB.setRayToWorld(rayTo);
       this.bulletSystem.collisionWorld.rayTest(rayFrom, rayTo, rayTestCB);
       if (rayTestCB.hasHit()) {
-         final Entity e = (Entity)(rayTestCB.getCollisionObject().userData);
-         //Do stuff with Entity e
+//         final Entity e = (Entity)(rayTestCB.getCollisionObject().userData);
+         //TODO: Do stuff with Entity e
       }
    }
    
