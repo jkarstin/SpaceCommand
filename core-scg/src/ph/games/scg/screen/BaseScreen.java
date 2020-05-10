@@ -26,9 +26,9 @@ public abstract class BaseScreen implements Screen {
 	}
 
 	@Override
-	public void render(float delta) {
+	public void render(float dt) {
 		this.stage.act();
-		this.update(delta);
+		this.update(dt);
 		this.stage.draw();
 	}
 

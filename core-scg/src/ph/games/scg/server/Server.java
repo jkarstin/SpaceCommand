@@ -2,42 +2,42 @@
  * Server.java
  * 
  * Manages server side connection and
- * communications for TCP/IP server design.
+ * communications for TCP/IP CVE server design.
  * 
- * J Karstin Neill    05.03.2020
+ * J Karstin Neill    05.09.2020
  *********************************************/
 
 package ph.games.scg.server;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
+import com.badlogic.gdx.physics.bullet.linearmath.int4;
+
+import ph.games.scg.server.command.Command;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.ILoggable;
 
 public class Server implements ILoggable {
 	
-	//TODO: Evolve this into a local class with a command type and a requesting client
-	public static enum Command implements ILoggable {
-		LOGIN,
-		VERSION,
-		LOGOUT,
-		SAY,
-		TELL
-	}
-	
 	//Server socket
 	private ServerSocket serverSock;
 	//Server metadata
 	private int port;
+	private String hostname;
+	private String hostaddress;
 	private boolean opened;
 	private float uptime;
 	//Number of milliseconds the server will attempt to look for clients before stopping
 	private int soTimeout;
 	
 	//Client ArrayList
-	private ArrayList<Socket> clients;
+	private ArrayList<Socket> socks;
 	//Command Queue
 	private ArrayList<Command> commandQ;
 	//Broadcast Queue
@@ -52,7 +52,7 @@ public class Server implements ILoggable {
 		this.uptime = 0f;
 		this.soTimeout = timeout;
 		
-		this.clients = new ArrayList<Socket>();
+		this.socks = new ArrayList<Socket>();
 		this.commandQ = new ArrayList<Command>();
 		this.broadcastQ = new ArrayList<String>();
 	}
@@ -62,10 +62,13 @@ public class Server implements ILoggable {
 		if (this.serverSock == null) try {
 			this.serverSock = new ServerSocket(this.port);
 			this.serverSock.setSoTimeout(this.soTimeout);
+			this.hostname = InetAddress.getLocalHost().getHostName();
+			this.hostaddress = InetAddress.getLocalHost().getHostAddress();
 			this.opened = true;
 			this.uptime = 0f;
+			Debug.log("Successfully opened server:" + this);
 		} catch (Exception e) {
-			Debug.warn("Failed to open server!");
+			Debug.warn("Failed to open server: " + this);
 			e.printStackTrace();
 		}
 	}
@@ -73,6 +76,7 @@ public class Server implements ILoggable {
 	public void update(float dt) {
 		if (this.isOpen()) {
 			this.uptime += dt;
+			Debug.logv("Server uptime: " + this.uptime + " ms");
 			//Accept new clients
 			this.acceptClients();
 			//Look for commands from clients
@@ -86,20 +90,55 @@ public class Server implements ILoggable {
 	
 	private void acceptClients() {
 		if (this.isOpen()) {
+			Socket sock=null;
+			boolean halt=false;
+			int count=0;
 			
+			do {
+				try {
+					sock = this.serverSock.accept();
+				}
+				catch (SocketTimeoutException e) {
+					Debug.logv("Server timeout reached. Accepted " + count + " new clients.");
+					halt = true;
+				}
+				catch (Exception e) {
+					Debug.warn("Failed to accept client!");
+					e.printStackTrace();
+				}
+		
+				if (sock != null) {
+					this.socks.add(sock);
+					count++;
+					System.out.println("Accepted client: " + sock.toString());
+				}
+			} while (!halt);
 		}
 	}
 	
 	private void receiveCommands() {
 		if (this.isOpen()) {
-			
+			//Attempt to read in server messages
+			for (Socket sock : this.socks) {
+				try {
+					InputStream istream = sock.getInputStream();
+					int len = istream.available();
+					byte[] readBytes = new byte[len];
+					int num = istream.read(readBytes);
+					for (int b=0; b < num; b++) {
+						Debug.logv("Read byte [" + b + "]: " + readBytes[b]);
+					}
+				}
+				catch (IOException e) { e.printStackTrace(); }
+				
+			}
 		}
 	}
 	
 	private void executeCommands() {
 		if (this.isOpen()) {
-			for (Command cmd : this.commandQ) {
-				switch (cmd) {
+			for (Command command : this.commandQ) {
+				switch (command.getType()) {
 				case LOGIN:
 					break;
 				case VERSION:
@@ -119,7 +158,10 @@ public class Server implements ILoggable {
 	
 	private void broadcastMessages() {
 		if (this.isOpen()) {
-			
+			for (String message : this.broadcastQ) {
+				//Broadcast message
+				Debug.log("Broadcasting message to server... [" + message + "]");
+			}
 		}
 	}
 	
@@ -127,9 +169,10 @@ public class Server implements ILoggable {
 		if (this.serverSock != null) try {
 			this.serverSock.close();
 			this.opened = false;
+			Debug.log("Successfully closed server: " + this + " uptime=" + this.uptime + " ms");
 		} catch (Exception e) {
 			e.printStackTrace();
-			Debug.warn("Failed to close server!");
+			Debug.warn("Failed to close server: " + this);
 		}
 	}
 	
@@ -143,10 +186,12 @@ public class Server implements ILoggable {
 	
 	@Override
 	public String toString() {
-		return "Server instance";
+		String str = serverSock.toString();
+		if (this.isOpen()) str += "{hostname=" + this.hostname + " hostaddress=" + this.hostaddress + "}";
+		return str;
 	}
 	
-//******* ORIGINAL SERVER DESIGN ************
+//********* ORIGINAL SERVER DESIGN *********
 //	public static final int DEFAULT_BACKLOG = 16;
 //	public static final int DEFAULT_TIMEOUT = 10;
 //
