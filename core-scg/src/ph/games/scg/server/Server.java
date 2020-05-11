@@ -42,6 +42,7 @@ public class Server implements ILoggable {
 	private String hostname;
 	private String hostaddress;
 	private boolean opened;
+	//Number of seconds since server was opened
 	private float uptime;
 	//Number of milliseconds the server will attempt to look for clients before stopping
 	private int soTimeout;
@@ -52,12 +53,18 @@ public class Server implements ILoggable {
 	private String segment;
 	private StringTokenizer stoker;
 	
+	//User ArrayList
+	private ArrayList<User> registeredUsers;
 	//Client ArrayList
 	private ArrayList<Socket> socks;
+	//UserSock ArrayList
+	private ArrayList<UserSock> usersocks;
 	//Command Queue
 	private ArrayList<Command> commandQ;
+	//Direct Message Queue
+	private ArrayList<UserMessage> directMessageQ;
 	//Broadcast Queue
-	private ArrayList<String> broadcastQ;
+	private ArrayList<UserMessage> broadcastQ;
 	
 	public Server(int port, int timeout) {
 		this.serverSock = null;
@@ -71,9 +78,15 @@ public class Server implements ILoggable {
 		this.segment = "";
 		this.stoker = null;
 		
+		this.registeredUsers = new ArrayList<User>();
+		this.registeredUsers.add(new User("phrongorre", "pancakes99"));
+		this.registeredUsers.add(new User("roger", "foneybaloney"));
+		
 		this.socks = new ArrayList<Socket>();
+		this.usersocks = new ArrayList<UserSock>();
 		this.commandQ = new ArrayList<Command>();
-		this.broadcastQ = new ArrayList<String>();
+		this.directMessageQ = new ArrayList<UserMessage>();
+		this.broadcastQ = new ArrayList<UserMessage>();
 	}
 	public Server(int port) { this(port, 50); }
 	
@@ -103,7 +116,7 @@ public class Server implements ILoggable {
 			//Execute on commands received
 			this.executeCommands();
 			//Broadcast server-wide messages
-			this.broadcastMessages();
+			this.sendMessages();
 		}
 	}
 	
@@ -132,7 +145,7 @@ public class Server implements ILoggable {
 			//Attempt to read in server messages
 			for (Socket sock : this.socks) {
 				
-				//Attempt to get message
+				//Attempt to get messages
 				try {
 					InputStream istream = sock.getInputStream();
 					
@@ -159,7 +172,7 @@ public class Server implements ILoggable {
 				}
 				catch (IOException e) { e.printStackTrace(); }
 				
-				//Look for command if message was received
+				//Look for commands if messages were received
 				for (String message : this.messages) {
 					this.stoker = new StringTokenizer(message);
 					String token;
@@ -213,25 +226,103 @@ public class Server implements ILoggable {
 	
 	private void executeCommands() {
 		if (this.isOpen()) {
-			
 			Debug.logv(this.commandQ);
+			
+			boolean success;
+			User user, target;
 			
 			for (Command command : this.commandQ) {
 				switch (command.getType()) {
 				case LOGIN:
+					LoginCommand logincmd = (LoginCommand)command;
+					
+					success = false;
+					for (User reguser : this.registeredUsers) {
+						if (reguser.getUsername().equals(logincmd.getUsername()) && reguser.hasPassword(logincmd.getPassword())) {
+							Debug.log("User logged in: " + reguser + " @ " + logincmd.getSock());
+							this.usersocks.add(new UserSock(reguser, logincmd.getSock()));
+							success = true;
+							break;
+						}
+					}
+					
+					if (!success) {
+						Debug.log("Login attempt failed: Incorrect username or password");
+						Debug.logv(this.registeredUsers);
+					}
+					
 					break;
 				case VERSION:
 					String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
 					write(((VersionCommand)command).getSock(), version);
 					break;
 				case LOGOUT:
+					success = false;
+					for (UserSock usersock : this.usersocks) {
+						if (usersock.getSock() == command.getSock()) {
+							this.usersocks.remove(usersock);
+							Debug.log("User logout successful: " + usersock.getUser() + " @ " + usersock.getSock());
+							success = true;
+							break;
+						}
+					}
+					
+					if (!success) Debug.log("Failed to logout. Requesting Socket has no active User: " + command.getSock());
+					
 					break;
 				case SAY:
-					this.broadcastQ.add(((SayCommand)command).getMessage());
+					SayCommand saycmd = (SayCommand)command;
+					
+					user = null;
+					for (UserSock usersock : this.usersocks) {
+						if (saycmd.getSock() == usersock.getSock()) {
+							user = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (user == null) {
+						Debug.log("Failed to broadcast message. Requesting Socket has no active User: " + saycmd.getSock() + " [" + saycmd.getMessage() + "]");
+						break;
+					}
+						
+					this.broadcastQ.add(new UserMessage(user, saycmd.getMessage()));
+					
 					break;
 				case TELL:
+					TellCommand tellcmd = (TellCommand)command;
+					
+					user = null;
+					for (UserSock usersock : this.usersocks) {
+						if (tellcmd.getSock() == usersock.getSock()) {
+							user = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (user == null) {
+						Debug.log("Failed to send message. Requesting Socket has no active User: " + tellcmd.getSock() + " [" + tellcmd.getMessage() + "]");
+						break;
+					}
+					
+					target = null;
+					for (UserSock usersock : this.usersocks) {
+						if (tellcmd.getToUsername().equals(usersock.getUser().getUsername())) {
+							target = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (target == null) {
+						Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
+						break;
+					}
+					
+					this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), target));
+					
 					break;
 				default:
+					Debug.warn("Invalid command type: " + command);
 					break;
 				}
 			}
@@ -240,12 +331,25 @@ public class Server implements ILoggable {
 		}
 	}
 	
-	private void broadcastMessages() {
+	private void sendMessages() {
 		if (this.isOpen()) {
-			for (String message : this.broadcastQ) {
+			
+			//Direct Message Queue
+			
+			for (UserMessage usermessage : this.directMessageQ) {
 				//Broadcast message
-				Debug.log("Broadcasting message to server... [" + message + "]");
+				Debug.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + usermessage.getUser().getUsername() + ": " + usermessage.getMessage() + "]");
 			}
+			
+			this.directMessageQ.clear();
+			
+			//Broadcast Queue
+			
+			for (UserMessage usermessage : this.broadcastQ) {
+				//Broadcast message
+				Debug.log("Broadcasting message to server... [" + usermessage.getUser().getUsername() + ": " + usermessage.getMessage() + "]");
+			}
+			
 			this.broadcastQ.clear();
 		}
 	}
@@ -308,6 +412,54 @@ public class Server implements ILoggable {
 		String str = serverSock.toString();
 		if (this.isOpen()) str += "{hostname=" + this.hostname + " hostaddress=" + this.hostaddress + "}";
 		return str;
+	}
+	
+	private static class UserSock {
+		
+		private User user;
+		private Socket sock;
+		
+		public UserSock(User user, Socket sock) {
+			this.user = user;
+			this.sock = sock;
+		}
+		
+		public User getUser() {
+			return this.user;
+		}
+		
+		public Socket getSock() {
+			return this.sock;
+		}
+		
+	}
+	
+	private static class UserMessage {
+		
+		private User user;
+		private String message;
+		//Left null if message is to be broadcast
+		private User target;
+		
+		public UserMessage(User user, String message, User target) {
+			this.user = user;
+			this.message = message;
+			this.target = target;
+		}
+		public UserMessage(User user, String message) { this(user, message, null); }
+		
+		public User getUser() {
+			return this.user;
+		}
+		
+		public String getMessage() {
+			return this.message;
+		}
+		
+		public User getTarget() {
+			return this.target;
+		}
+		
 	}
 	
 }

@@ -23,8 +23,10 @@ public class ClientTestScreen extends BaseScreen {
 		
 		this.messages.add("\\login phrongorre pancakes99");
 		this.messages.add("\\version");
+		this.messages.add("\\login roger foneybaloney");
 		this.messages.add("\\tell roger who can it be now?");
 		this.messages.add("\\say Hello world!");
+		this.messages.add("\\logout");
 		this.messages.add("\\logout");
 				
 		this.sock = open("192.168.1.2", 21595);
