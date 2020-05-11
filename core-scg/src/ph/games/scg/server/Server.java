@@ -339,6 +339,7 @@ public class Server implements ILoggable {
 			for (UserMessage usermessage : this.directMessageQ) {
 				//Broadcast message
 				Debug.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + usermessage.getUser().getUsername() + ": " + usermessage.getMessage() + "]");
+				write(usermessage);
 			}
 			
 			this.directMessageQ.clear();
@@ -348,6 +349,10 @@ public class Server implements ILoggable {
 			for (UserMessage usermessage : this.broadcastQ) {
 				//Broadcast message
 				Debug.log("Broadcasting message to server... [" + usermessage.getUser().getUsername() + ": " + usermessage.getMessage() + "]");
+
+				for (UserSock usersock : this.usersocks) {
+					write(usersock.getSock(), "[" + usermessage.getUser().getUsername() + "]: " + usermessage.getMessage());
+				}
 			}
 			
 			this.broadcastQ.clear();
@@ -371,6 +376,23 @@ public class Server implements ILoggable {
 	
 	public float getUptime() {
 		return this.uptime;
+	}
+	
+	private void write(UserMessage usermessage) {
+		Socket sock = null;
+		for (UserSock usersock : this.usersocks) {
+			if (usersock.getUser().getUsername().equals(usermessage.getTarget().getUsername())) {
+				sock = usersock.getSock();
+				break;
+			}
+		}
+		
+		if (sock == null) {
+			Debug.log("Failed to write to User " + usermessage.getTarget().getUsername() + ": No active User found.");
+			return;
+		}
+		
+		write(sock, "[" + usermessage.getUser().getUsername() + "]: " + usermessage.getMessage());
 	}
 	
 	//Write ArrayList<String> contents to Socket's OutputStream
