@@ -17,8 +17,8 @@ public class GameScreen extends BaseScreen {
 	@Override
 	public void initialize() {
 		this.gameUI = new GameUI();
-		this.gameWorld = new GameWorld(this.gameUI);
-		this.client = new Client(this.gameWorld, Server.SERVER_IP, Server.SERVER_PORT);
+		this.client = new Client(Server.SERVER_IP, Server.SERVER_PORT);
+		this.gameWorld = new GameWorld(this.gameUI, this.client);
 		Settings.Paused = false;
 		Gdx.input.setInputProcessor(this.gameUI.stage);
 		Gdx.input.setCursorCatched(true);

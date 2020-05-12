@@ -34,6 +34,7 @@ public class MoveCommand extends Command {
 			this.dt = 0f;
 		}
 	}
+	public MoveCommand(String name, String args) { this(null, name, args); }
 	
 	public String getName() {
 		return this.name;

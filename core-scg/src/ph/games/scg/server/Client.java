@@ -10,6 +10,8 @@ import com.badlogic.gdx.utils.Disposable;
 
 import ph.games.scg.game.GameWorld;
 import ph.games.scg.server.command.Command;
+import ph.games.scg.server.command.LoginCommand;
+import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
 import ph.games.scg.util.Debug;
 
@@ -29,8 +31,8 @@ public class Client implements Disposable {
 	private GameWorld gameWorld;
 	private ArrayList<Command> commandsFromServer;
 	
-	public Client(GameWorld gameWorld, String serverIP, int serverPort, int timeout) {
-		this.gameWorld = gameWorld;
+	public Client(String serverIP, int serverPort, int timeout) {
+		this.gameWorld = null;
 		
 		this.user = null;
 		this.soTimeout = timeout;
@@ -43,6 +45,7 @@ public class Client implements Disposable {
 		
 		this.open(serverIP, serverPort);
 		
+		//TODO: test login capabilities
 		this.login("phrongorre", "pancakes99");
 		
 		this.messages.add("\\version");
@@ -52,7 +55,11 @@ public class Client implements Disposable {
 		this.write(this.messages);
 		this.messages.clear();
 	}
-	public Client(GameWorld gameWorld, String serverIP, int serverPort) { this(gameWorld, serverIP, serverPort, DEFAULT_SO_TIMEOUT); }
+	public Client(String serverIP, int serverPort) { this(serverIP, serverPort, DEFAULT_SO_TIMEOUT); }
+	
+	public void setGameWorld(GameWorld gameWorld) {
+		this.gameWorld = gameWorld;
+	}
 	
 	//Open a new Socket at specified address and port
 	private void open(String hostaddress, int port) {
@@ -61,7 +68,10 @@ public class Client implements Disposable {
 			this.sock.setSoTimeout(this.soTimeout);
 			this.opened = true;
 			Debug.log("Successfully opened Client: " + this);
-		} catch (IOException e) { e.printStackTrace(); }
+		} catch (IOException e) {
+			Debug.warn("Failed to open Client: " + this);
+			e.printStackTrace();
+		}
 	}
 	
 	private void login(String username, String password) {
@@ -69,6 +79,13 @@ public class Client implements Disposable {
 		
 		this.user = new User(username, password);
 		this.write("\\login " + username + " " + password);
+	}
+	
+	private void logout() {
+		if (!this.isOpen()) return;
+		
+		this.user = null;
+		this.write("\\logout");
 	}
 	
 	public void update(float dt) {
@@ -85,8 +102,10 @@ public class Client implements Disposable {
 	private int read() {
 		if (!this.isOpen()) return -1;
 		
+		//Counter for number of messages received
 		int count = 0;
 		
+		//Read in from InputStream and break into messages at '\n' occurences
 		try {
 			InputStream istream = this.sock.getInputStream();
 			
@@ -118,25 +137,19 @@ public class Client implements Disposable {
 				switch (tokens[1]) {
 				case "\\login":
 					//Login command relayed, add new UserEntity to gameWorld
-					
-					
-					//TODO: Be sure to not create a UserEntity if this user is the one that sent the login request... if that makes sense (don't want a ghost of yourself following you, y'know?)
-					
+					this.commandsFromServer.add(new LoginCommand(tokens[2]));
 					deQMessages.add(message);
 					break;
 				
 				case "\\logout":
 					//Logout command relayed, remove UserEntity from gameWorld
-					
-					//TODO: Similar to \login, we don't want to cause problems for the user to sent the request
-					
+					this.commandsFromServer.add(new LogoutCommand(tokens[2]));
 					deQMessages.add(message);
-					
 					break;
 					
 				case "\\move":
 					//Move command relayed, apply move to target UserEntity
-					this.commandsFromServer.add(new MoveCommand(null, tokens[2], tokens[3]));
+					this.commandsFromServer.add(new MoveCommand(tokens[2], tokens[3]));
 					deQMessages.add(message);
 					break;
 					
@@ -159,7 +172,34 @@ public class Client implements Disposable {
 	
 	//TODO: Carry out commands delivered by Server to update world state
 	private void executeServerCommands() {
-		for (Command cmd : this.commandsFromServer) Debug.log("Command From Server: " + cmd);
+		for (Command cmd : this.commandsFromServer) {
+			Debug.log("Command From Server: " + cmd);
+			
+			
+			switch (cmd.getType()) {
+			case LOGIN:
+				LoginCommand logincmd = (LoginCommand)cmd;
+				//TODO: Be sure to not create a UserEntity if this user is the one that sent the login request... if that makes sense (don't want a ghost of yourself following you, y'know?)
+				if (this.user != null && this.user.getUsername().equals(logincmd.getUsername())) {
+					//This is the user who made the login request
+				}
+				else {
+					//Add new UserEntity to GameWorld
+					this.gameWorld.addUserEntity(logincmd.getUsername());
+				}
+				break;
+			case LOGOUT:
+				//TODO: Similar to \login, we don't want to cause problems for the user to sent the request
+				break;
+			case MOVE:
+				break;
+			default:
+				break;
+			}
+			
+			
+			
+		}
 		this.commandsFromServer.clear();
 	}
 	

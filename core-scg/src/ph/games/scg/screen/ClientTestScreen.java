@@ -9,7 +9,7 @@ public class ClientTestScreen extends BaseScreen {
 	
 	@Override
 	protected void initialize() {
-		this.client = new Client(null, Server.SERVER_IP, Server.SERVER_PORT);
+		this.client = new Client(Server.SERVER_IP, Server.SERVER_PORT);
 	}
 
 	@Override

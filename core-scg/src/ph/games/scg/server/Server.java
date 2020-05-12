@@ -151,18 +151,26 @@ public class Server implements ILoggable {
 		//Attempt to read in server messages
 		for (Socket sock : this.socks) {
 			
+			//TODO: Will cause problems with the current design if multiple sockets write at the same time!
+			//		Need to make sure to have a separate "segment" object for each Socket so we don't get mixed messages.
+			
 			//Attempt to get messages
+			//Read in from InputStream and break into messages at '\n' occurences
 			try {
 				InputStream istream = sock.getInputStream();
 				
+				//Try to read BYTE_BUFFER_SIZE bytes
 				int len = Math.min(istream.available(), BYTE_BUFFER_SIZE);
+				//Store actual number of bytes read
 				int num = istream.read(this.buff, 0, len);
 				Debug.logv("Bytes read: " + num);
+				//If bytes were read, process
 				if (num > 0) {
 					char c;
 					for (int b=0; b < num; b++) {
 						c = (char)(this.buff[b]);
 						Debug.logv("[" + b + "]\t" + c);
+						//Store segment as new message and reset segment
 						if (c == '\n') {
 							this.messages.add(this.segment);
 							this.segment = "";
@@ -170,6 +178,7 @@ public class Server implements ILoggable {
 						else this.segment += (char)(this.buff[b]);
 					}
 					
+					//Log the messages received for debugging purposes
 					Debug.log("Received Messages [" + this.messages.size() + "]:");
 					for (String message : this.messages) {
 						Debug.log(message);
@@ -193,10 +202,7 @@ public class Server implements ILoggable {
 						username = pullToken();
 						password = pullToken();
 						if (username == null) Debug.warn("Invalid use of \\login command. Requires username value");
-						else {
-							if (password == null) password = "";
-							this.commandQ.add(new LoginCommand(sock, username, password));
-						}
+						else this.commandQ.add(new LoginCommand(sock, username, password));
 						break;
 						
 					case "\\version":
@@ -276,9 +282,11 @@ public class Server implements ILoggable {
 				LoginCommand logincmd = (LoginCommand)command;
 				
 				success = false;
+				user = null;
 				for (User reguser : this.registeredUsers) {
 					if (reguser.getUsername().equals(logincmd.getUsername()) && reguser.hasPassword(logincmd.getPassword())) {
 						Debug.log("User logged in: " + reguser + " @ " + logincmd.getSock());
+						user = reguser;
 						this.usersocks.add(new UserSock(reguser, logincmd.getSock()));
 						success = true;
 						break;
@@ -291,23 +299,29 @@ public class Server implements ILoggable {
 				}
 				
 				//Broadcast login message to all connected clients to update their world state
+				if (user != null) {
+					String message = "\\login " + user.getUsername();
+					this.broadcastQ.add(new UserMessage(message));
+				}
 				
 				break;
 				
 				
 			case VERSION:
 				String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
-				this.directMessageQ.add(new UserMessage(null, version));
+				this.directMessageQ.add(new UserMessage(version));
 				
 				break;
 				
 				
 			case LOGOUT:
 				success = false;
+				user = null;
 				for (UserSock usersock : this.usersocks) {
 					if (usersock.getSock() == command.getSock()) {
+						user = usersock.getUser();
 						this.usersocks.remove(usersock);
-						Debug.log("User logout successful: " + usersock.getUser() + " @ " + usersock.getSock());
+						Debug.log("User logout successful: " + user + " @ " + usersock.getSock());
 						success = true;
 						break;
 					}
@@ -316,6 +330,10 @@ public class Server implements ILoggable {
 				if (!success) Debug.log("Failed to logout. Requesting Socket has no active User: " + command.getSock());
 				
 				//Broadcast logout message to all connected clients to update their world state
+				if (user != null) {
+					String message = "\\logout " + user.getUsername();
+					this.broadcastQ.add(new UserMessage(message));
+				}
 				
 				break;
 				
@@ -554,6 +572,7 @@ public class Server implements ILoggable {
 			this.target = target;
 		}
 		public UserMessage(User user, String message) { this(user, message, null); }
+		public UserMessage(String message) { this(null, message, null); }
 		
 		public User getUser() {
 			return this.user;

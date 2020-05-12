@@ -11,12 +11,14 @@ public class User implements ILoggable {
 		this.username = username;
 		this.password = password;
 	}
+	public User(String username) { this(username, null); }
 	
 	public String getUsername() {
 		return this.username;
 	}
 	
 	public boolean hasPassword(String password) {
+		if (this.password == null) return true;
 		return (this.password.equals(password));
 	}
 	

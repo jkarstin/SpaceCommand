@@ -17,6 +17,9 @@ public class LoginCommand extends Command {
 		
 		Debug.logv("New Command: " + this);
 	}
+	public LoginCommand(String username) {
+		this(null, username, null);
+	}
 	
 	public String getUsername() {
 		return this.username;

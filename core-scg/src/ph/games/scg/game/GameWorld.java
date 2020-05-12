@@ -15,6 +15,7 @@ import com.badlogic.gdx.utils.JsonValue;
 import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.environment.Room;
 import ph.games.scg.environment.Room.Quad;
+import ph.games.scg.server.Client;
 import ph.games.scg.server.User;
 import ph.games.scg.system.BulletSystem;
 import ph.games.scg.system.PlayerSystem;
@@ -31,23 +32,24 @@ public class GameWorld {
 	private Engine engine;
 	private Entity character;
 	private GameUI gameUI;
+	private Client client;
 	private PlayerSystem playerSystem;
 	private RenderSystem renderSystem;
 	
 	private ArrayList<UserEntity> userEntities;
 
-	public GameWorld(GameUI gameUI) {
+	public GameWorld(GameUI gameUI, Client client) {
 		Bullet.init(); //Load in Bullet.dll
 
 		setDebug();
 
-		initWorld(gameUI);
+		initWorld(gameUI, client);
 		
 		this.userEntities = new ArrayList<UserEntity>();
 		
 		addSystems();
 		
-		loadRooms();
+		//loadRooms();
 		
 		addEntities();
 	}
@@ -63,9 +65,11 @@ public class GameWorld {
 		}
 	}
 
-	private void initWorld(GameUI gameUI) {
+	private void initWorld(GameUI gameUI, Client client) {
 		this.engine = new Engine();
 		this.gameUI = gameUI;
+		this.client = client;
+		this.client.setGameWorld(this);
 	}
 
 	private void addSystems() {
@@ -236,6 +240,22 @@ public class GameWorld {
 		else {
 			this.bulletSystem.setProcessing(true);
 			this.playerSystem.setProcessing(true);
+		}
+	}
+	
+	public void addUserEntity(String username) {
+		UserEntity userEntity = new UserEntity(new User(username), EntityFactory.createUserEntity(this.bulletSystem, 10f, 16f, 18f));
+		this.engine.addEntity(userEntity.getEntity());
+		this.userEntities.add(userEntity);
+	}
+	
+	public void removeUserEntity(String username) {
+		for (UserEntity userEntity : this.userEntities) {
+			if (userEntity.getUser().getUsername().equals(username)) {
+				this.userEntities.remove(userEntity);
+				this.engine.removeEntity(userEntity.getEntity());
+				break;
+			}
 		}
 	}
 	

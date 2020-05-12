@@ -198,7 +198,7 @@ public class EntityFactory {
 		CharacterComponent characterComponent = new CharacterComponent();
 		characterComponent.ghostObject = new btPairCachingGhostObject();
 		characterComponent.ghostObject.setWorldTransform(modelComponent.instance.transform);
-		characterComponent.ghostShape = new btCapsuleShapeZ(1f, 1f); //Creating a capsule with upAxis set to Z, makes for an accurate upAxis in btKinematicCharacterController creation
+		characterComponent.ghostShape = new btCapsuleShapeZ(2f, 2f); //Creating a capsule with upAxis set to Z, makes for an accurate upAxis in btKinematicCharacterController creation
 		characterComponent.ghostObject.setCollisionShape(characterComponent.ghostShape);
 		characterComponent.ghostObject.setCollisionFlags(btCollisionObject.CollisionFlags.CF_CHARACTER_OBJECT);
 		characterComponent.characterController = new btKinematicCharacterController(
@@ -220,6 +220,10 @@ public class EntityFactory {
 				);
 
 		return entity;
+	}
+
+	public static Entity createUserEntity(BulletSystem bulletSystem, float x, float y, float z) {
+		return EntityFactory.createCharacter(bulletSystem, x, y, z);
 	}
 
 }
