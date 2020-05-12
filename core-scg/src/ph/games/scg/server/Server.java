@@ -23,6 +23,7 @@ import java.util.StringTokenizer;
 import ph.games.scg.server.command.Command;
 import ph.games.scg.server.command.LoginCommand;
 import ph.games.scg.server.command.LogoutCommand;
+import ph.games.scg.server.command.MoveCommand;
 import ph.games.scg.server.command.SayCommand;
 import ph.games.scg.server.command.TellCommand;
 import ph.games.scg.server.command.VersionCommand;
@@ -31,8 +32,12 @@ import ph.games.scg.util.ILoggable;
 
 public class Server implements ILoggable {
 	
+	public static final String SERVER_IP = "192.168.1.2";
+	public static final int SERVER_PORT = 21595;
+	private static final int DEFAULT_SO_TIMEOUT = 50;
+	
 	private static final int BYTE_BUFFER_SIZE = 64;
-	private static final int VERSION_LO = 1;
+	private static final int VERSION_LO = 2;
 	private static final int VERSION_HI = 0;
 	
 	//Server socket
@@ -88,7 +93,7 @@ public class Server implements ILoggable {
 		this.directMessageQ = new ArrayList<UserMessage>();
 		this.broadcastQ = new ArrayList<UserMessage>();
 	}
-	public Server(int port) { this(port, 50); }
+	public Server(int port) { this(port, DEFAULT_SO_TIMEOUT); }
 	
 	public void open() {
 		if (this.serverSock == null) try {
@@ -221,6 +226,27 @@ public class Server implements ILoggable {
 							
 						case "\\move":
 							//TODO: Handle command
+							username = pullToken();
+							if (username == null) {
+								Debug.warn("Invalid use of \\move command. Requires name value");
+								break;
+							}
+							message = pullToken();
+							if (message == null) {
+								Debug.warn("Invalid use of \\move command. Requires movement values");
+								break;
+							}
+							
+							String[] moveData = message.split(",");
+							
+							float x = Float.valueOf(moveData[0]);
+							float y = Float.valueOf(moveData[1]);
+							float z = Float.valueOf(moveData[2]);
+							float theta = Float.valueOf(moveData[3]);
+							float delta = Float.valueOf(moveData[4]);
+							
+							this.commandQ.add(new MoveCommand(sock, username, x, y, z, theta, delta));
+							
 							break;
 							
 						default:
@@ -243,6 +269,8 @@ public class Server implements ILoggable {
 			
 			for (Command command : this.commandQ) {
 				switch (command.getType()) {
+				
+				
 				case LOGIN:
 					LoginCommand logincmd = (LoginCommand)command;
 					
@@ -262,10 +290,15 @@ public class Server implements ILoggable {
 					}
 					
 					break;
+					
+					
 				case VERSION:
 					String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
-					write(((VersionCommand)command).getSock(), version);
+					this.directMessageQ.add(new UserMessage(null, version));
+					
 					break;
+					
+					
 				case LOGOUT:
 					success = false;
 					for (UserSock usersock : this.usersocks) {
@@ -280,6 +313,8 @@ public class Server implements ILoggable {
 					if (!success) Debug.log("Failed to logout. Requesting Socket has no active User: " + command.getSock());
 					
 					break;
+					
+					
 				case SAY:
 					SayCommand saycmd = (SayCommand)command;
 					
@@ -299,6 +334,8 @@ public class Server implements ILoggable {
 					this.broadcastQ.add(new UserMessage(user, saycmd.getMessage()));
 					
 					break;
+					
+					
 				case TELL:
 					TellCommand tellcmd = (TellCommand)command;
 					
@@ -331,6 +368,26 @@ public class Server implements ILoggable {
 					this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), target));
 					
 					break;
+					
+					
+				case MOVE:
+					MoveCommand movecmd = (MoveCommand)command;
+					
+					user = null;
+					for (UserSock usersock : this.usersocks) {
+						if (movecmd.getSock() == usersock.getSock()) {
+							user = usersock.getUser();
+							break;
+						}
+					}
+					
+					String moveMessage = "\\move " + movecmd.getName() + " " + movecmd.getMoveVector().x + "," + movecmd.getMoveVector().y + "," + movecmd.getMoveVector().z + "," + movecmd.getFacing() + "," + movecmd.getDeltaTime();
+					
+					this.broadcastQ.add(new UserMessage(null, moveMessage));
+					
+					break;
+					
+					
 				default:
 					Debug.warn("Invalid command type: " + command);
 					break;
@@ -343,40 +400,27 @@ public class Server implements ILoggable {
 	
 	private void sendMessages() {
 		if (this.isOpen()) {
-			
-			//Direct Message Queue
-			
-			for (UserMessage usermessage : this.directMessageQ) {
-				//Broadcast message
-				Debug.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + usermessage.getUser().getUsername() + ": " + usermessage.getMessage() + "]");
-				write(usermessage);
-			}
-			
+			//Send Direct Messages
+			for (UserMessage usermessage : this.directMessageQ) write(usermessage);
 			this.directMessageQ.clear();
 			
-			//Broadcast Queue
-			
-			for (UserMessage usermessage : this.broadcastQ) {
-				//Broadcast message
-				Debug.log("Broadcasting message to server... [" + usermessage.getUser().getUsername() + ": " + usermessage.getMessage() + "]");
-
-				for (UserSock usersock : this.usersocks) {
-					write(usersock.getSock(), "[" + usermessage.getUser().getUsername() + "]: " + usermessage.getMessage());
-				}
-			}
-			
+			//Broadcast Messages
+			for (UserMessage usermessage : this.broadcastQ) write(usermessage);
 			this.broadcastQ.clear();
 		}
 	}
 	
 	public void close() {
 		if (this.serverSock != null) try {
+			
+			for (UserSock usersock : this.usersocks) usersock.getSock().close();
+			
 			this.serverSock.close();
 			this.opened = false;
 			Debug.log("Successfully closed server: " + this + " uptime=" + this.uptime + " s");
 		} catch (Exception e) {
-			e.printStackTrace();
 			Debug.warn("Failed to close server: " + this);
+			e.printStackTrace();
 		}
 	}
 	
@@ -389,20 +433,35 @@ public class Server implements ILoggable {
 	}
 	
 	private void write(UserMessage usermessage) {
+		
+		String sender;
+		if (usermessage.getUser() == null) sender = "SERVER";
+		else sender = usermessage.getUser().getUsername();
+		
+		//Check for target socket
 		Socket sock = null;
-		for (UserSock usersock : this.usersocks) {
-			if (usersock.getUser().getUsername().equals(usermessage.getTarget().getUsername())) {
-				sock = usersock.getSock();
-				break;
+		if (usermessage.getTarget() != null) {
+			for (UserSock usersock : this.usersocks) {
+				if (usersock.getUser().getUsername().equals(usermessage.getTarget().getUsername())) {
+					sock = usersock.getSock();
+					break;
+				}
 			}
 		}
 		
+		//If no target socket, broadcast message to server
 		if (sock == null) {
-			Debug.log("Failed to write to User " + usermessage.getTarget().getUsername() + ": No active User found.");
-			return;
+			
+			for (UserSock usersock : this.usersocks) {
+				Debug.log("Broadcasting message to User " + usersock.getUser().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+				write(usersock.getSock(), "[" + sender + "] " + usermessage.getMessage());
+			}
+			
 		}
-		
-		write(sock, "[" + usermessage.getUser().getUsername() + "]: " + usermessage.getMessage());
+		else {
+			Debug.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+			write(sock, "[" + sender + "] " + usermessage.getMessage());
+		}
 	}
 	
 	//Write ArrayList<String> contents to Socket's OutputStream
@@ -414,7 +473,11 @@ public class Server implements ILoggable {
 				byte[] buff = message.getBytes();
 				ostream.write(buff);
 			}
-		} catch (IOException e) { e.printStackTrace(); }
+		} catch (IOException e) {
+			Debug.warn("Unable to write to Socket. Removing UserSock record... " + sock);
+			for (UserSock usersock : this.usersocks) if (usersock.getSock() == sock) this.usersocks.remove(usersock);
+			e.printStackTrace();
+		}
 	}
 	
 	//Write String to Socket's OutputStream
@@ -425,7 +488,11 @@ public class Server implements ILoggable {
 			message += "\n";
 			byte[] buff = message.getBytes();
 			ostream.write(buff);
-		} catch (IOException e) { e.printStackTrace(); }
+		} catch (IOException e) {
+			Debug.warn("Unable to write to Socket. Removing UserSock record... " + sock);
+			for (UserSock usersock : this.usersocks) if (usersock.getSock() == sock) this.usersocks.remove(usersock);
+			e.printStackTrace();
+		}
 	}
 	
 	public String pullToken() {
@@ -441,8 +508,9 @@ public class Server implements ILoggable {
 	
 	@Override
 	public String toString() {
-		String str = serverSock.toString();
-		if (this.isOpen()) str += "{hostname=" + this.hostname + " hostaddress=" + this.hostaddress + "}";
+		String str = "SERVER";
+		if (this.isOpen()) str += "{serverSock=" + this.serverSock.toString() + " hostname=" + this.hostname + " hostaddress=" + this.hostaddress + "}";
+		else str += "{serverSock=" + this.serverSock.toString() + "}";
 		return str;
 	}
 	
@@ -468,6 +536,7 @@ public class Server implements ILoggable {
 	
 	private static class UserMessage {
 		
+		//Left null if this message is from the Server
 		private User user;
 		private String message;
 		//Left null if message is to be broadcast

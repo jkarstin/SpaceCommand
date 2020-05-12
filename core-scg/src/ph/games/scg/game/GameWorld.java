@@ -1,5 +1,7 @@
 package ph.games.scg.game;
 
+import java.util.ArrayList;
+
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.Gdx;
@@ -13,6 +15,7 @@ import com.badlogic.gdx.utils.JsonValue;
 import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.environment.Room;
 import ph.games.scg.environment.Room.Quad;
+import ph.games.scg.server.User;
 import ph.games.scg.system.BulletSystem;
 import ph.games.scg.system.PlayerSystem;
 import ph.games.scg.system.RenderSystem;
@@ -30,6 +33,8 @@ public class GameWorld {
 	private GameUI gameUI;
 	private PlayerSystem playerSystem;
 	private RenderSystem renderSystem;
+	
+	private ArrayList<UserEntity> userEntities;
 
 	public GameWorld(GameUI gameUI) {
 		Bullet.init(); //Load in Bullet.dll
@@ -37,13 +42,20 @@ public class GameWorld {
 		setDebug();
 
 		initWorld(gameUI);
+		
+		this.userEntities = new ArrayList<UserEntity>();
+		
 		addSystems();
 		
 		loadRooms();
 		
 		addEntities();
 	}
-
+	
+	public ArrayList<UserEntity> getUserEntities() {
+		return this.userEntities;
+	}
+	
 	private void setDebug() {
 		if (Debug.isOn()) {
 			this.debugDrawer = new DebugDrawer();
@@ -226,4 +238,26 @@ public class GameWorld {
 			this.playerSystem.setProcessing(true);
 		}
 	}
+	
+	//Link between a User instance and their GameWorld representation
+	public static class UserEntity {
+		
+		private User user;
+		private Entity entity;
+		
+		public UserEntity(User user, Entity entity) {
+			this.user = user;
+			this.entity = entity;
+		}
+		
+		public User getUser() {
+			return this.user;
+		}
+		
+		public Entity getEntity() {
+			return this.entity;
+		}
+		
+	}
+	
 }

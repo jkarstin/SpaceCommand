@@ -1,135 +1,193 @@
 package ph.games.scg.server;
 
-public class Client {
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.util.ArrayList;
+
+import com.badlogic.gdx.utils.Disposable;
+
+import ph.games.scg.game.GameWorld;
+import ph.games.scg.server.command.Command;
+import ph.games.scg.server.command.MoveCommand;
+import ph.games.scg.util.Debug;
+
+public class Client implements Disposable {
+
+	private static final int BYTE_BUFFER_SIZE = 64;
+	private static final int DEFAULT_SO_TIMEOUT = 50;
 	
-//********* ORIGINAL CLIENT DESIGN *********
-//	private String hostAddress;
-//	private int hostPort;
-//	private String serverAddress;
-//	private int serverPort;
-//	private Socket socket;
-//	private InputStream inStream;
-//	private OutputStream outStream;
-//	private byte[] readBytes;
-//
-//	public Client(Socket socket) {
-//		this.socket = socket;
-//
-//		this.hostAddress = socket.getInetAddress().getHostAddress();
-//		this.hostPort = socket.getPort();
-//		this.serverAddress = socket.getLocalAddress().getHostAddress();
-//		this.serverPort = socket.getLocalPort();
-//
-//		try {
-//			this.inStream = socket.getInputStream();
-//			this.outStream = socket.getOutputStream();
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-//
-//	public Client(String serverAddress, int serverPort) {
-//		this.socket = null;
-//		this.serverAddress = serverAddress;
-//		this.serverPort = serverPort;
-//		this.inStream = null;
-//		this.outStream = null;
-//	}
-//	
-//	public void setServerIP(String serverAddress) {
-//		this.serverAddress = serverAddress;
-//	}
-//	
-//	public Client connect() {
-//		this.socket = null;
-//
-//		try {
-//			this.socket = new Socket(this.serverAddress, this.serverPort);
-//		}
-//		catch (ConnectException ce) {
-//			System.out.println("Failed to connect: connection refused");
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//
-//		if (this.socket != null) {
-//			this.hostAddress = socket.getLocalAddress().getHostAddress();
-//			this.hostPort = socket.getLocalPort();
-//
-//			try {
-//				this.inStream = this.socket.getInputStream();
-//				this.outStream = this.socket.getOutputStream();
-//			}
-//			catch (Exception e) {
-//				e.printStackTrace();
-//			}
-//		}
-//
-//		return this;
-//	}
-//
-//	public Client close() {
-//		if (this.socket == null || this.socket.isClosed()) return this;
-//
-//		try {
-//			this.socket.close();
-//			this.inStream = null;
-//			this.outStream = null;
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//
-//		return this;
-//	}
-//
-//	public int read() {
-//		try {
-//			return this.inStream.read(this.readBytes);
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//
-//		return 0;
-//	}
-//	
-//	public InputStream getInStream() {
-//		if (this.socket != null) return this.inStream;
-//		else return null;
-//	}
-//	
-//	public OutputStream getOutStream() {
-//		if (this.socket != null) return this.outStream;
-//		else return null;
-//	}
-//	
-//	public void write(byte[] writeBytes) {
-//		try {
-//			this.outStream.write(writeBytes);
-//		}
-//		catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//	}
-//
-//	public String toString() {
-//		String str = socket.toString() + "\n" +
-//				"Host Address: " + this.hostAddress + "\n" +
-//				"Host Port: " + this.hostPort + "\n" +
-//				"Server Address: " + this.serverAddress + "\n" +
-//				"Server Port: " + this.serverPort;
-//		return str;
-//	}
-//
-//	public String getShortTag() {
-//		String tag = "C" + this.hostPort;
-//		return tag;
-//	}
-//
-//	public boolean isClosed() {
-//		return (this.socket == null || this.socket.isClosed());
-//	}
+	private Socket sock;
+	private int soTimeout;
+	private byte[] buff;
+	private ArrayList<String> messages;
+	private String segment;
+	private boolean opened;
+	
+	private GameWorld gameWorld;
+	private ArrayList<Command> commandsFromServer;
+	
+	public Client(GameWorld gameWorld, String serverIP, int serverPort, int timeout) {
+		this.gameWorld = gameWorld;
+		
+		this.soTimeout = timeout;
+		this.messages = new ArrayList<String>();
+		this.buff = new byte[BYTE_BUFFER_SIZE];
+		this.segment = "";
+		this.opened = false;
+		
+		this.commandsFromServer = new ArrayList<Command>();
+		
+		this.open(serverIP, serverPort);
+		
+		
+		this.messages.add("\\login phrongorre pancakes99");
+		this.messages.add("\\version");
+		this.messages.add("\\tell roger who can it be now?");
+		this.messages.add("\\say Hello world!");
+		this.messages.add("\\move phrongorre 10.50,20.99,8.01,260.0,193");
+		this.write(this.messages);
+		this.messages.clear();
+	}
+	public Client(GameWorld gameWorld, String serverIP, int serverPort) { this(gameWorld, serverIP, serverPort, DEFAULT_SO_TIMEOUT); }
+	
+	//Open a new Socket at specified address and port
+	private void open(String hostaddress, int port) {
+		try {
+			this.sock = new Socket(hostaddress, port);
+			this.sock.setSoTimeout(this.soTimeout);
+			this.opened = true;
+			Debug.log("Successfully opened Client: " + this);
+		} catch (IOException e) { e.printStackTrace(); }
+	}
+	
+	public void update(float dt) {
+		this.read();
+		this.executeServerCommands();
+		this.displayMessages();
+	}
+	
+	private boolean isOpen() {
+		return this.opened;
+	}
+	
+	//Attempt to read from the socket and count number of messages
+	private int read() {
+		if (!this.isOpen()) return -1;
+		
+		int count = 0;
+		
+		try {
+			InputStream istream = this.sock.getInputStream();
+			
+			int len = Math.min(istream.available(), BYTE_BUFFER_SIZE);
+			int num = istream.read(this.buff, 0, len);
+			Debug.logv("Bytes read: " + num);
+			if (num > 0) {
+				char c;
+				for (int b=0; b < num; b++) {
+					c = (char)(this.buff[b]);
+					Debug.logv("[" + b + "]\t" + c);
+					if (c == '\n') {
+						this.messages.add(this.segment);
+						count++;
+						this.segment = "";
+					}
+					else this.segment += (char)(this.buff[b]);
+				}
+			}
+		}
+		catch (IOException e) { e.printStackTrace(); }
+		
+		
+		ArrayList<String> deQMessages = new ArrayList<String>();
+		for (String message : this.messages) {
+			String[] tokens = message.split(" ");
+			if (tokens != null && tokens.length > 2) switch (tokens[0]) {
+			case "[SERVER]":
+				switch (tokens[1]) {
+				case "\\login":
+					//Login command relayed, add new UserEntity to gameWorld
+					
+					//TODO: Be sure to not create a UserEntity if this user is the one that sent the login request... if that makes sense (don't want a ghost of yourself following you, y'know?)
+					
+					deQMessages.add(message);
+					break;
+				
+				case "\\logout":
+					//Logout command relayed, remove UserEntity from gameWorld
+					
+					//TODO: Similar to \login, we don't want to cause problems for the user to sent the request
+					
+					deQMessages.add(message);
+					break;
+					
+				case "\\move":
+					//Move command relayed, apply move to target UserEntity
+					this.commandsFromServer.add(new MoveCommand(null, tokens[2], tokens[3]));
+					deQMessages.add(message);
+					break;
+					
+				default:
+					//Leave server message alone
+					break;
+				}
+				break;
+			default:
+				//Leave message alone
+				break;
+			}
+		}
+		
+		//Remove messages that were flagged for removal
+		for (String message : deQMessages) this.messages.remove(message);
+		
+		return count;
+	}
+	
+	//TODO: Carry out commands delivered by Server to update world state
+	private void executeServerCommands() {
+		for (Command cmd : this.commandsFromServer) Debug.log("Command From Server: " + cmd);
+		this.commandsFromServer.clear();
+	}
+	
+	private void displayMessages() {
+		for (String message : this.messages) Debug.log(message);
+		this.messages.clear();
+	}
+	
+	//Write ArrayList<String> contents to Socket's OutputStream
+	private void write(ArrayList<String> messages) {
+		if (!this.isOpen()) return;
+		
+		if (this.sock != null) try {
+			OutputStream ostream = this.sock.getOutputStream();
+			for (String message : messages) {
+				message += "\n";
+				byte[] buff = message.getBytes();
+				ostream.write(buff);
+			}		
+		} catch (IOException e) { e.printStackTrace(); }
+	}
+	
+	//Close Socket
+	private void close() {
+		if (!this.isOpen()) return;
+		
+		if (this.sock != null) try { this.sock.close(); }
+		catch (IOException e) { e.printStackTrace(); }
+	}
+	
+	@Override
+	public String toString() {
+		String str = "CLIENT{sock=" + this.sock + "}";
+		return str;
+	}
+	
+	@Override
+	public void dispose() {
+		this.close();
+	}
+
 }

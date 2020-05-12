@@ -18,6 +18,42 @@ public class MoveCommand extends Command {
 		this.facing = theta;
 		this.dt = delta;
 	}
+	public MoveCommand(Socket sock, String name, String args) {
+		super(CMD_TYP.MOVE, sock);
+		this.name = name;
+		
+		String[] argsSplit = args.split(",");
+		if (argsSplit != null && argsSplit.length == 5) {
+			this.moveVector = new Vector3(Float.valueOf(argsSplit[0]), Float.valueOf(argsSplit[1]), Float.valueOf(argsSplit[2]));
+			this.facing = Float.valueOf(argsSplit[3]);
+			this.dt = Float.valueOf(argsSplit[4]);
+		}
+		else {
+			this.moveVector = new Vector3();
+			this.facing = 0f;
+			this.dt = 0f;
+		}
+	}
+	
+	public String getName() {
+		return this.name;
+	}
+	
+	public Vector3 getMoveVector() {
+		return this.moveVector;
+	}
+	
+	public float getFacing() {
+		return this.facing;
+	}
+	
+	public float getDeltaTime() {
+		return this.dt;
+	}
+	
+	public String toCommandString() {
+		return "\\move " + this.name + " " + this.moveVector.x + "," + this.moveVector.y + "," + this.moveVector.z + "," + this.facing + "," + this.dt;
+	}
 	
 	@Override
 	public String toString() {
