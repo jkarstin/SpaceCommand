@@ -182,6 +182,7 @@ public class Server implements ILoggable {
 					message = "";
 					while ((token = pullToken()) != null) {
 						switch (token) {
+						
 						case "\\login":
 							username = pullToken();
 							password = pullToken();
@@ -191,18 +192,22 @@ public class Server implements ILoggable {
 								this.commandQ.add(new LoginCommand(sock, username, password));
 							}
 							break;
+							
 						case "\\version":
 							this.commandQ.add(new VersionCommand(sock));
 							break;
+							
 						case "\\logout":
 							this.commandQ.add(new LogoutCommand(sock));
 							break;
+							
 						case "\\say":
 							//build message from remaining tokens
 							if ((token = pullToken()) != null) message = token;
 							while ((token = pullToken()) != null) message += " " + token;
 							this.commandQ.add(new SayCommand(sock, message));
 							break;
+							
 						case "\\tell":
 							username = pullToken();
 							if (username == null) Debug.warn("Invalid use of \\tell command. Requires username value");
@@ -213,6 +218,11 @@ public class Server implements ILoggable {
 								this.commandQ.add(new TellCommand(sock, username, message));
 							}
 							break;
+							
+						case "\\move":
+							//TODO: Handle command
+							break;
+							
 						default:
 							Debug.log("Unsupported or unrecognized command delivered: " + token);
 							break;

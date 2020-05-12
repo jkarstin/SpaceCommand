@@ -11,7 +11,8 @@ public abstract class Command implements ILoggable {
 		VERSION,
 		LOGOUT,
 		SAY,
-		TELL
+		TELL,
+		MOVE
 	}
 	
 	private CMD_TYP type;

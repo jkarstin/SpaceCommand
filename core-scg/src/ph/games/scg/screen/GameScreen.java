@@ -7,10 +7,10 @@ import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Settings;
 
 public class GameScreen extends BaseScreen {
-   
-   private GameUI gameUI;
-   private GameWorld gameWorld;
-   
+
+	private GameUI gameUI;
+	private GameWorld gameWorld;
+
 	@Override
 	public void initialize() {
 		this.gameUI = new GameUI();
@@ -19,28 +19,28 @@ public class GameScreen extends BaseScreen {
 		Gdx.input.setInputProcessor(this.gameUI.stage);
 		Gdx.input.setCursorCatched(true);
 	}
-	
+
 	@Override
 	public void update(float dt) {
 		//Updates
-      this.gameUI.update(dt);
-      //Draw
-      this.gameWorld.render(dt);
-      this.gameUI.render();
+		this.gameUI.update(dt);
+		//Draw
+		this.gameWorld.render(dt);
+		this.gameUI.render();
 	}
-   
-   @Override
-   public void resize(int width, int height) {
+
+	@Override
+	public void resize(int width, int height) {
 		super.resize(width, height);
-      this.gameUI.resize(width, height);
-      this.gameWorld.resize(width, height);
-   }
-   
-   @Override
-   public void dispose() {
-      this.gameUI.dispose();
-      this.gameWorld.dispose();
+		this.gameUI.resize(width, height);
+		this.gameWorld.resize(width, height);
+	}
+
+	@Override
+	public void dispose() {
+		this.gameUI.dispose();
+		this.gameWorld.dispose();
 		super.dispose();
-   }
-   
+	}
+
 }

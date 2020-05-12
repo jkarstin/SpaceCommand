@@ -2,12 +2,17 @@ package ph.games.scg.game;
 
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
+import com.badlogic.gdx.Gdx;
 //See <http://javadox.com/com.badlogicgames.gdx/gdx-bullet/1.3.1/overview-summary.html> for API info
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.DebugDrawer;
 import com.badlogic.gdx.physics.bullet.linearmath.btIDebugDraw;
+import com.badlogic.gdx.utils.JsonReader;
+import com.badlogic.gdx.utils.JsonValue;
 
 import ph.games.scg.component.CharacterComponent;
+import ph.games.scg.environment.Room;
+import ph.games.scg.environment.Room.Quad;
 import ph.games.scg.system.BulletSystem;
 import ph.games.scg.system.PlayerSystem;
 import ph.games.scg.system.RenderSystem;
@@ -33,6 +38,9 @@ public class GameWorld {
 
 		initWorld(gameUI);
 		addSystems();
+		
+		loadRooms();
+		
 		addEntities();
 	}
 
@@ -54,15 +62,102 @@ public class GameWorld {
 		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI));
 		if (Debug.isOn()) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
 	}
-
-	private void addEntities() {
-		loadLevel();
-		createPlayer(5f, 3f, 5f);
-		createSpaceship(2f, 3f, 1f);
+	
+	private void loadRooms() {
+//		engine.addEntity(EntityFactory.loadScene(0f, 0f, 0f));
+		
+		JsonReader jsonReader = new JsonReader();
+		JsonValue jsonValue = jsonReader.parse(Gdx.files.internal("./rooms/jebcsac.json"));
+		
+		/********** JSON FORMAT **********
+		 * [
+		 * {
+		 * "class": classname,
+		 * "name": name_of_object,
+		 * "x": x_coordinate_of_object,
+		 * "y": y_coordinate_of_object,
+		 * "z": z_coordinate_of_object,
+		 * "w": width_of_object,
+		 * "h": height_of_object,
+		 * "l": length_of_object,
+		 * "texture": wall_texture_image_file,
+		 * "floor": floor_texture_image_file,
+		 * "ceiling": ceiling_texture_image_file,
+		 * "decorations": [
+		 * 		{"class": classname0, "texture": decor0_texture_image_file,
+		 * 		 "coords": [x00, y00, z00,
+		 * 					x01, y01, z01,
+		 * 					x02, y02, z02,
+		 * 					x03, y03, z03]
+		 * 			},
+		 * 		{"class": classname1, "texture": decor1_texture_image_file,
+		 * 		 "coords": [x10, y10, z10,
+		 * 					x11, y11, z11,
+		 * 					x12, y12, z12,
+		 * 					x13, y13, z13]
+		 * 			},
+		 * 
+		 * 						...
+		 * 
+		 * 		{"class": classnamen, "texture": decorn_texture_image_file,
+		 * 		 "coords": [xn0, yn0, zn0,
+		 * 					xn1, yn1, zn1,
+		 * 					xn2, yn2, zn2,
+		 * 					xn3, yn3, zn3]
+		 * 			}
+		 * ]
+		 * }
+		 * ]
+		 */
+		
+		//Debug.log(jsonValue.toString());
+		
+		for (JsonValue jv=jsonValue.child(); jv != null; jv = jv.next()) {
+			Debug.log(jv.toString());
+			
+			//Build new Room object from JsonValue
+			Room room = new Room();
+			room.setName(jv.getString("name"));
+			room.setLocation(jv.getFloat("x"), jv.getFloat("y"), jv.getFloat("z"));
+			room.setDimensions(jv.getFloat("w"), jv.getFloat("h"), jv.getFloat("l"));
+			room.setTexture(jv.getString("texture"));
+			room.setFloor(jv.getString("floor"));
+			room.setCeiling(jv.getString("ceiling"));
+			
+			for (JsonValue decorjv=jv.get("decorations").child(); decorjv != null; decorjv = decorjv.next()) {
+				Debug.log(decorjv.toString());
+				
+				Quad q = new Quad();
+				q.setTexture(decorjv.getString("texture"));
+				
+				float[] coords = decorjv.get("coords").asFloatArray();
+				
+				q.setCoords(coords[0], coords[1], coords[2],
+							coords[3], coords[4], coords[5],
+							coords[6], coords[7], coords[8],
+							coords[9], coords[10], coords[11]);
+				
+				room.addDecoration(q);
+			}
+			
+			Debug.log(room);
+			
+			//TODO: Generate room boundary Quads and add to engine
+			
+			
+			//Generate and add decoration Quads to engine
+			for (Quad quad : room.getDecorations()) {
+				this.engine.addEntity(EntityFactory.createQuad(quad));	
+			}
+						
+		}
+		
 	}
-
-	private void loadLevel() {
-		engine.addEntity(EntityFactory.loadScene(0f, 0f, 0f));
+	
+	private void addEntities() {
+		this.engine.addEntity(EntityFactory.loadScene(10f, 12f, 18f));
+		createPlayer(10f, 16f, 18f);
+//		createSpaceship(2f, 3f, 1f);
 	}
 
 	private void createPlayer(float x, float y, float z) {

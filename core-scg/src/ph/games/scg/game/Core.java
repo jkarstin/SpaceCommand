@@ -7,6 +7,8 @@ import com.badlogic.gdx.graphics.GL20;
 
 import ph.games.scg.screen.GameScreen;
 import ph.games.scg.util.Assets;
+import ph.games.scg.util.Debug;
+import ph.games.scg.util.Debug.DEBUG_MODE;
 import ph.games.scg.util.Settings;
 
 public class Core extends Game {
@@ -39,6 +41,8 @@ public class Core extends Game {
 	
 	@Override
 	public void create () {
+		Debug.setMode(DEBUG_MODE.ON_VERBOSE);
+		
 		new Assets();
 		Settings.load();
 		Core.setActiveScreen(new GameScreen());

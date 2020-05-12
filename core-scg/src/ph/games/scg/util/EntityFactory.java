@@ -33,6 +33,7 @@ import ph.games.scg.component.BulletComponent;
 import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.PlayerComponent;
+import ph.games.scg.environment.Room.Quad;
 import ph.games.scg.system.BulletSystem;
 
 public class EntityFactory {
@@ -56,7 +57,43 @@ public class EntityFactory {
 				);
 		spaceshipModel = null;
 	}
-
+	
+	public static Entity createQuad(Quad quad) {
+		ModelBuilder modelBuilder = new ModelBuilder();
+		Texture quadTexture = new Texture(Gdx.files.internal("./rooms/" + quad.getTexture()));
+		
+		float[] coords = quad.getCoords();
+		float[] normal = quad.getNormal();
+		
+		float[] dimensions = quad.getDimensions();
+		
+		Debug.log("Dimensions: " + dimensions[0] + ", " + dimensions[1] + ", " + dimensions[2]);
+		
+		Model quadModel = modelBuilder.createRect(
+				
+				//TODO: Close, but is having issues keeping the texture inside the collider when drawn facing the opposite direction as an orientation that works.
+				//		Might have to do with the values being passed to createStaticEntity
+				
+				coords[0]-coords[0]+(dimensions[0]/2f), coords[1]-coords[1]-(dimensions[1]/2f), coords[2]-coords[2]+(dimensions[2]/2f),   //texture bottom left
+				coords[9]-coords[0]+(dimensions[0]/2f), coords[10]-coords[1]-(dimensions[1]/2f), coords[11]-coords[2]+(dimensions[2]/2f), //texture bottom right
+				coords[6]-coords[0]+(dimensions[0]/2f), coords[7]-coords[1]-(dimensions[1]/2f), coords[8]-coords[2]+(dimensions[2]/2f),   //texture top right
+				coords[3]-coords[0]+(dimensions[0]/2f), coords[4]-coords[1]-(dimensions[1]/2f), coords[5]-coords[2]+(dimensions[2]/2f),   //texture top left
+				
+				normal[0], normal[1], normal[2],
+				
+				new Material(
+						TextureAttribute.createDiffuse(quadTexture),
+						ColorAttribute.createSpecular(1f, 1f, 1f, 1f),
+						FloatAttribute.createShininess(8f)
+						),
+				
+				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates
+				
+				);
+		
+		return EntityFactory.createStaticEntity(quadModel, coords[0], coords[1], coords[2]);
+	}
+	
 	public static Entity createStaticEntity(Model model, float x, float y, float z) {
 		final BoundingBox boundingBox = new BoundingBox();
 		model.calculateBoundingBox(boundingBox);
@@ -161,7 +198,7 @@ public class EntityFactory {
 		CharacterComponent characterComponent = new CharacterComponent();
 		characterComponent.ghostObject = new btPairCachingGhostObject();
 		characterComponent.ghostObject.setWorldTransform(modelComponent.instance.transform);
-		characterComponent.ghostShape = new btCapsuleShapeZ(2f, 2f); //Creating a capsule with upAxis set to Z, makes for an accurate upAxis in btKinematicCharacterController creation
+		characterComponent.ghostShape = new btCapsuleShapeZ(1f, 1f); //Creating a capsule with upAxis set to Z, makes for an accurate upAxis in btKinematicCharacterController creation
 		characterComponent.ghostObject.setCollisionShape(characterComponent.ghostShape);
 		characterComponent.ghostObject.setCollisionFlags(btCollisionObject.CollisionFlags.CF_CHARACTER_OBJECT);
 		characterComponent.characterController = new btKinematicCharacterController(
