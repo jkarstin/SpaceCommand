@@ -18,6 +18,7 @@ public class Client implements Disposable {
 	private static final int BYTE_BUFFER_SIZE = 64;
 	private static final int DEFAULT_SO_TIMEOUT = 50;
 	
+	private User user;
 	private Socket sock;
 	private int soTimeout;
 	private byte[] buff;
@@ -31,6 +32,7 @@ public class Client implements Disposable {
 	public Client(GameWorld gameWorld, String serverIP, int serverPort, int timeout) {
 		this.gameWorld = gameWorld;
 		
+		this.user = null;
 		this.soTimeout = timeout;
 		this.messages = new ArrayList<String>();
 		this.buff = new byte[BYTE_BUFFER_SIZE];
@@ -41,8 +43,8 @@ public class Client implements Disposable {
 		
 		this.open(serverIP, serverPort);
 		
+		this.login("phrongorre", "pancakes99");
 		
-		this.messages.add("\\login phrongorre pancakes99");
 		this.messages.add("\\version");
 		this.messages.add("\\tell roger who can it be now?");
 		this.messages.add("\\say Hello world!");
@@ -60,6 +62,13 @@ public class Client implements Disposable {
 			this.opened = true;
 			Debug.log("Successfully opened Client: " + this);
 		} catch (IOException e) { e.printStackTrace(); }
+	}
+	
+	private void login(String username, String password) {
+		if (!this.isOpen()) return;
+		
+		this.user = new User(username, password);
+		this.write("\\login " + username + " " + password);
 	}
 	
 	public void update(float dt) {
@@ -110,6 +119,7 @@ public class Client implements Disposable {
 				case "\\login":
 					//Login command relayed, add new UserEntity to gameWorld
 					
+					
 					//TODO: Be sure to not create a UserEntity if this user is the one that sent the login request... if that makes sense (don't want a ghost of yourself following you, y'know?)
 					
 					deQMessages.add(message);
@@ -121,6 +131,7 @@ public class Client implements Disposable {
 					//TODO: Similar to \login, we don't want to cause problems for the user to sent the request
 					
 					deQMessages.add(message);
+					
 					break;
 					
 				case "\\move":
@@ -168,6 +179,18 @@ public class Client implements Disposable {
 				byte[] buff = message.getBytes();
 				ostream.write(buff);
 			}		
+		} catch (IOException e) { e.printStackTrace(); }
+	}
+	
+	//Write ArrayList<String> contents to Socket's OutputStream
+	private void write(String message) {
+		if (!this.isOpen()) return;
+		
+		if (this.sock != null) try {
+			OutputStream ostream = this.sock.getOutputStream();
+			message += "\n";
+			byte[] buff = message.getBytes();
+			ostream.write(buff);
 		} catch (IOException e) { e.printStackTrace(); }
 	}
 	

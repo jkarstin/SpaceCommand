@@ -111,291 +111,297 @@ public class Server implements ILoggable {
 	}
 	
 	public void update(float dt) {
-		if (this.isOpen()) {
-			this.uptime += dt;
-			Debug.logv("Server uptime: " + this.uptime + " s");
-			//Accept new clients
-			this.acceptClients();
-			//Look for commands from clients
-			this.receiveCommands();
-			//Execute on commands received
-			this.executeCommands();
-			//Broadcast server-wide messages
-			this.sendMessages();
-		}
+		if (!this.isOpen()) return;
+		
+		this.uptime += dt;
+		Debug.logv("Server uptime: " + this.uptime + " s");
+		//Accept new clients
+		this.acceptClients();
+		//Look for commands from clients
+		this.receiveCommands();
+		//Execute on commands received
+		this.executeCommands();
+		//Broadcast server-wide messages
+		this.sendMessages();
 	}
 	
 	private void acceptClients() {
-		if (this.isOpen()) {
-			Socket sock=null;
-			
-			try { sock = this.serverSock.accept(); }
-			catch (SocketTimeoutException e) {
-				Debug.logv("Server timeout reached");
-			}
-			catch (Exception e) {
-				Debug.warn("Failed to accept client!");
-				e.printStackTrace();
-			}
-	
-			if (sock != null) {
-				this.socks.add(sock);
-				Debug.log("Accepted client: " + sock.toString());
-			}
+		if (!this.isOpen()) return;
+
+		Socket sock=null;
+		
+		try { sock = this.serverSock.accept(); }
+		catch (SocketTimeoutException e) {
+			Debug.logv("Server timeout reached");
+		}
+		catch (Exception e) {
+			Debug.warn("Failed to accept client!");
+			e.printStackTrace();
+		}
+
+		if (sock != null) {
+			this.socks.add(sock);
+			Debug.log("Accepted client: " + sock.toString());
 		}
 	}
 	
 	private void receiveCommands() {
-		if (this.isOpen()) {
-			//Attempt to read in server messages
-			for (Socket sock : this.socks) {
+		if (!this.isOpen()) return;
+		
+		//Attempt to read in server messages
+		for (Socket sock : this.socks) {
+			
+			//Attempt to get messages
+			try {
+				InputStream istream = sock.getInputStream();
 				
-				//Attempt to get messages
-				try {
-					InputStream istream = sock.getInputStream();
+				int len = Math.min(istream.available(), BYTE_BUFFER_SIZE);
+				int num = istream.read(this.buff, 0, len);
+				Debug.logv("Bytes read: " + num);
+				if (num > 0) {
+					char c;
+					for (int b=0; b < num; b++) {
+						c = (char)(this.buff[b]);
+						Debug.logv("[" + b + "]\t" + c);
+						if (c == '\n') {
+							this.messages.add(this.segment);
+							this.segment = "";
+						}
+						else this.segment += (char)(this.buff[b]);
+					}
 					
-					int len = Math.min(istream.available(), BYTE_BUFFER_SIZE);
-					int num = istream.read(this.buff, 0, len);
-					Debug.logv("Bytes read: " + num);
-					if (num > 0) {
-						char c;
-						for (int b=0; b < num; b++) {
-							c = (char)(this.buff[b]);
-							Debug.logv("[" + b + "]\t" + c);
-							if (c == '\n') {
-								this.messages.add(this.segment);
-								this.segment = "";
-							}
-							else this.segment += (char)(this.buff[b]);
-						}
-						
-						Debug.log("Received Messages [" + this.messages.size() + "]:");
-						for (String message : this.messages) {
-							Debug.log(message);
-						}
+					Debug.log("Received Messages [" + this.messages.size() + "]:");
+					for (String message : this.messages) {
+						Debug.log(message);
 					}
 				}
-				catch (IOException e) { e.printStackTrace(); }
+			}
+			catch (IOException e) { e.printStackTrace(); }
+			
+			//Look for commands if messages were received
+			for (String message : this.messages) {
+				this.stoker = new StringTokenizer(message);
+				String token;
 				
-				//Look for commands if messages were received
-				for (String message : this.messages) {
-					this.stoker = new StringTokenizer(message);
-					String token;
+				String username = "";
+				String password = "";
+				message = "";
+				while ((token = pullToken()) != null) {
+					switch (token) {
 					
-					String username = "";
-					String password = "";
-					message = "";
-					while ((token = pullToken()) != null) {
-						switch (token) {
+					case "\\login":
+						username = pullToken();
+						password = pullToken();
+						if (username == null) Debug.warn("Invalid use of \\login command. Requires username value");
+						else {
+							if (password == null) password = "";
+							this.commandQ.add(new LoginCommand(sock, username, password));
+						}
+						break;
 						
-						case "\\login":
-							username = pullToken();
-							password = pullToken();
-							if (username == null) Debug.warn("Invalid use of \\login command. Requires username value");
-							else {
-								if (password == null) password = "";
-								this.commandQ.add(new LoginCommand(sock, username, password));
-							}
-							break;
-							
-						case "\\version":
-							this.commandQ.add(new VersionCommand(sock));
-							break;
-							
-						case "\\logout":
-							this.commandQ.add(new LogoutCommand(sock));
-							break;
-							
-						case "\\say":
+					case "\\version":
+						this.commandQ.add(new VersionCommand(sock));
+						break;
+						
+					case "\\logout":
+						this.commandQ.add(new LogoutCommand(sock));
+						break;
+						
+					case "\\say":
+						//build message from remaining tokens
+						if ((token = pullToken()) != null) message = token;
+						while ((token = pullToken()) != null) message += " " + token;
+						this.commandQ.add(new SayCommand(sock, message));
+						break;
+						
+					case "\\tell":
+						username = pullToken();
+						if (username == null) Debug.warn("Invalid use of \\tell command. Requires username value");
+						else {
 							//build message from remaining tokens
 							if ((token = pullToken()) != null) message = token;
 							while ((token = pullToken()) != null) message += " " + token;
-							this.commandQ.add(new SayCommand(sock, message));
-							break;
-							
-						case "\\tell":
-							username = pullToken();
-							if (username == null) Debug.warn("Invalid use of \\tell command. Requires username value");
-							else {
-								//build message from remaining tokens
-								if ((token = pullToken()) != null) message = token;
-								while ((token = pullToken()) != null) message += " " + token;
-								this.commandQ.add(new TellCommand(sock, username, message));
-							}
-							break;
-							
-						case "\\move":
-							//TODO: Handle command
-							username = pullToken();
-							if (username == null) {
-								Debug.warn("Invalid use of \\move command. Requires name value");
-								break;
-							}
-							message = pullToken();
-							if (message == null) {
-								Debug.warn("Invalid use of \\move command. Requires movement values");
-								break;
-							}
-							
-							String[] moveData = message.split(",");
-							
-							float x = Float.valueOf(moveData[0]);
-							float y = Float.valueOf(moveData[1]);
-							float z = Float.valueOf(moveData[2]);
-							float theta = Float.valueOf(moveData[3]);
-							float delta = Float.valueOf(moveData[4]);
-							
-							this.commandQ.add(new MoveCommand(sock, username, x, y, z, theta, delta));
-							
-							break;
-							
-						default:
-							Debug.log("Unsupported or unrecognized command delivered: " + token);
+							this.commandQ.add(new TellCommand(sock, username, message));
+						}
+						break;
+						
+					case "\\move":
+						//TODO: Handle command
+						username = pullToken();
+						if (username == null) {
+							Debug.warn("Invalid use of \\move command. Requires name value");
 							break;
 						}
+						message = pullToken();
+						if (message == null) {
+							Debug.warn("Invalid use of \\move command. Requires movement values");
+							break;
+						}
+						
+						String[] moveData = message.split(",");
+						
+						float x = Float.valueOf(moveData[0]);
+						float y = Float.valueOf(moveData[1]);
+						float z = Float.valueOf(moveData[2]);
+						float theta = Float.valueOf(moveData[3]);
+						float delta = Float.valueOf(moveData[4]);
+						
+						this.commandQ.add(new MoveCommand(sock, username, x, y, z, theta, delta));
+						
+						break;
+						
+					default:
+						Debug.log("Unsupported or unrecognized command delivered: " + token);
+						break;
 					}
 				}
-				this.messages.clear();
 			}
+			this.messages.clear();
 		}
 	}
 	
 	private void executeCommands() {
-		if (this.isOpen()) {
-			Debug.logv(this.commandQ);
+		if (!this.isOpen()) return;
+	
+		Debug.logv(this.commandQ);
+		
+		boolean success;
+		User user, target;
+		
+		for (Command command : this.commandQ) {
+			switch (command.getType()) {
 			
-			boolean success;
-			User user, target;
 			
-			for (Command command : this.commandQ) {
-				switch (command.getType()) {
+			case LOGIN:
+				LoginCommand logincmd = (LoginCommand)command;
+				
+				success = false;
+				for (User reguser : this.registeredUsers) {
+					if (reguser.getUsername().equals(logincmd.getUsername()) && reguser.hasPassword(logincmd.getPassword())) {
+						Debug.log("User logged in: " + reguser + " @ " + logincmd.getSock());
+						this.usersocks.add(new UserSock(reguser, logincmd.getSock()));
+						success = true;
+						break;
+					}
+				}
+				
+				if (!success) {
+					Debug.log("Login attempt failed: Incorrect username or password");
+					Debug.logv(this.registeredUsers);
+				}
+				
+				//Broadcast login message to all connected clients to update their world state
+				
+				break;
 				
 				
-				case LOGIN:
-					LoginCommand logincmd = (LoginCommand)command;
-					
-					success = false;
-					for (User reguser : this.registeredUsers) {
-						if (reguser.getUsername().equals(logincmd.getUsername()) && reguser.hasPassword(logincmd.getPassword())) {
-							Debug.log("User logged in: " + reguser + " @ " + logincmd.getSock());
-							this.usersocks.add(new UserSock(reguser, logincmd.getSock()));
-							success = true;
-							break;
-						}
-					}
-					
-					if (!success) {
-						Debug.log("Login attempt failed: Incorrect username or password");
-						Debug.logv(this.registeredUsers);
-					}
-					
-					break;
-					
-					
-				case VERSION:
-					String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
-					this.directMessageQ.add(new UserMessage(null, version));
-					
-					break;
-					
-					
-				case LOGOUT:
-					success = false;
-					for (UserSock usersock : this.usersocks) {
-						if (usersock.getSock() == command.getSock()) {
-							this.usersocks.remove(usersock);
-							Debug.log("User logout successful: " + usersock.getUser() + " @ " + usersock.getSock());
-							success = true;
-							break;
-						}
-					}
-					
-					if (!success) Debug.log("Failed to logout. Requesting Socket has no active User: " + command.getSock());
-					
-					break;
-					
-					
-				case SAY:
-					SayCommand saycmd = (SayCommand)command;
-					
-					user = null;
-					for (UserSock usersock : this.usersocks) {
-						if (saycmd.getSock() == usersock.getSock()) {
-							user = usersock.getUser();
-							break;
-						}
-					}
-					
-					if (user == null) {
-						Debug.log("Failed to broadcast message. Requesting Socket has no active User: " + saycmd.getSock() + " [" + saycmd.getMessage() + "]");
+			case VERSION:
+				String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
+				this.directMessageQ.add(new UserMessage(null, version));
+				
+				break;
+				
+				
+			case LOGOUT:
+				success = false;
+				for (UserSock usersock : this.usersocks) {
+					if (usersock.getSock() == command.getSock()) {
+						this.usersocks.remove(usersock);
+						Debug.log("User logout successful: " + usersock.getUser() + " @ " + usersock.getSock());
+						success = true;
 						break;
 					}
-						
-					this.broadcastQ.add(new UserMessage(user, saycmd.getMessage()));
-					
-					break;
-					
-					
-				case TELL:
-					TellCommand tellcmd = (TellCommand)command;
-					
-					user = null;
-					for (UserSock usersock : this.usersocks) {
-						if (tellcmd.getSock() == usersock.getSock()) {
-							user = usersock.getUser();
-							break;
-						}
-					}
-					
-					if (user == null) {
-						Debug.log("Failed to send message. Requesting Socket has no active User: " + tellcmd.getSock() + " [" + tellcmd.getMessage() + "]");
+				}
+				
+				if (!success) Debug.log("Failed to logout. Requesting Socket has no active User: " + command.getSock());
+				
+				//Broadcast logout message to all connected clients to update their world state
+				
+				break;
+				
+				
+			case SAY:
+				SayCommand saycmd = (SayCommand)command;
+				
+				user = null;
+				for (UserSock usersock : this.usersocks) {
+					if (saycmd.getSock() == usersock.getSock()) {
+						user = usersock.getUser();
 						break;
 					}
-					
-					target = null;
-					for (UserSock usersock : this.usersocks) {
-						if (tellcmd.getToUsername().equals(usersock.getUser().getUsername())) {
-							target = usersock.getUser();
-							break;
-						}
-					}
-					
-					if (target == null) {
-						Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
-						break;
-					}
-					
-					this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), target));
-					
-					break;
-					
-					
-				case MOVE:
-					MoveCommand movecmd = (MoveCommand)command;
-					
-					user = null;
-					for (UserSock usersock : this.usersocks) {
-						if (movecmd.getSock() == usersock.getSock()) {
-							user = usersock.getUser();
-							break;
-						}
-					}
-					
-					String moveMessage = "\\move " + movecmd.getName() + " " + movecmd.getMoveVector().x + "," + movecmd.getMoveVector().y + "," + movecmd.getMoveVector().z + "," + movecmd.getFacing() + "," + movecmd.getDeltaTime();
-					
-					this.broadcastQ.add(new UserMessage(null, moveMessage));
-					
-					break;
-					
-					
-				default:
-					Debug.warn("Invalid command type: " + command);
+				}
+				
+				if (user == null) {
+					Debug.log("Failed to broadcast message. Requesting Socket has no active User: " + saycmd.getSock() + " [" + saycmd.getMessage() + "]");
 					break;
 				}
+					
+				this.broadcastQ.add(new UserMessage(user, saycmd.getMessage()));
+				
+				break;
+				
+				
+			case TELL:
+				TellCommand tellcmd = (TellCommand)command;
+				
+				user = null;
+				for (UserSock usersock : this.usersocks) {
+					if (tellcmd.getSock() == usersock.getSock()) {
+						user = usersock.getUser();
+						break;
+					}
+				}
+				
+				if (user == null) {
+					Debug.log("Failed to send message. Requesting Socket has no active User: " + tellcmd.getSock() + " [" + tellcmd.getMessage() + "]");
+					break;
+				}
+				
+				target = null;
+				for (UserSock usersock : this.usersocks) {
+					if (tellcmd.getToUsername().equals(usersock.getUser().getUsername())) {
+						target = usersock.getUser();
+						break;
+					}
+				}
+				
+				if (target == null) {
+					Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
+					break;
+				}
+				
+				this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), target));
+				
+				break;
+				
+				
+			case MOVE:
+				MoveCommand movecmd = (MoveCommand)command;
+				
+				user = null;
+				for (UserSock usersock : this.usersocks) {
+					if (movecmd.getSock() == usersock.getSock()) {
+						user = usersock.getUser();
+						break;
+					}
+				}
+				
+				//Broadcast move message to all connected clients to update their world state
+				
+				String moveMessage = "\\move " + movecmd.getName() + " " + movecmd.getMoveVector().x + "," + movecmd.getMoveVector().y + "," + movecmd.getMoveVector().z + "," + movecmd.getFacing() + "," + movecmd.getDeltaTime();
+				
+				this.broadcastQ.add(new UserMessage(null, moveMessage));
+				
+				break;
+				
+				
+			default:
+				Debug.warn("Invalid command type: " + command);
+				break;
 			}
-			
-			this.commandQ.clear();
 		}
+		
+		this.commandQ.clear();
 	}
 	
 	private void sendMessages() {

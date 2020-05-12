@@ -4,6 +4,8 @@ import java.net.Socket;
 
 import ph.games.scg.util.ILoggable;
 
+//TODO: Command should be the class handling translation of command strings to command objects internally
+
 public abstract class Command implements ILoggable {
 
 	public static enum CMD_TYP implements ILoggable {
