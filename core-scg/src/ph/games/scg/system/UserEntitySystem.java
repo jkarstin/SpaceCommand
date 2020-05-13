@@ -11,6 +11,7 @@ import com.badlogic.gdx.math.Vector3;
 
 import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.UserEntityComponent;
+import ph.games.scg.util.Debug;
 
 public class UserEntitySystem extends EntitySystem implements EntityListener {
 	
@@ -33,10 +34,12 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			
 			this.dtRemaining = dt;
 			while (this.dtRemaining > 0f && uec.queuedDeltaTime.size() > 0) {
-				
+								
 				float queuedDeltaTime = uec.queuedDeltaTime.remove(0);
 				float queuedRotation = uec.queuedRotation.remove(0);
 				Vector3 queuedMovement = uec.queuedMovement.remove(0);
+				
+				Debug.log("Queued movement data: " + queuedMovement + "," + queuedRotation + "," + queuedDeltaTime);
 				
 				//If full movement can be applied, apply
 				if (this.dtRemaining >= queuedDeltaTime) {

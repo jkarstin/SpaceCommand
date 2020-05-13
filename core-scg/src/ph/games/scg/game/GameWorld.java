@@ -262,6 +262,7 @@ public class GameWorld {
 			UserEntityComponent uec = entity.getComponent(UserEntityComponent.class);
 			if (uec == null) Debug.warn("Entity does not have a UserEntityComponent");
 			else {
+				Debug.log("Queueing movement data... " + moveVector + "," + facing + "," + deltaTime);
 				uec.queuedMovement.add(moveVector);
 				uec.queuedRotation.add(facing);
 				uec.queuedDeltaTime.add(deltaTime);
