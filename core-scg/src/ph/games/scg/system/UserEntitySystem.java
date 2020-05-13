@@ -51,7 +51,7 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 				float queuedRotation = uec.queuedRotation.remove(0);
 				Vector3 queuedMovement = uec.queuedMovement.remove(0);
 
-				Debug.log("Queued movement data: " + queuedMovement + "," + queuedRotation + "," + queuedDeltaTime);
+				Debug.logv("Queued movement data: " + queuedMovement + "," + queuedRotation + "," + queuedDeltaTime);
 
 				cc.characterDirection.set(0f, 0f, 0f);
 				
@@ -85,7 +85,7 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			position.add(translationVector);
 			mc.instance.transform.setTranslation(position);
 			//Apply rotation
-			mc.instance.transform.setToRotation(Vector3.Y, facing);
+			//mc.instance.transform.setToRotation(Vector3.Y, facing);
 			
 			cc.walkDirection.set(0f, 0f, 0f);
 			cc.walkDirection.add(translationVector);
