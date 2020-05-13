@@ -167,7 +167,7 @@ public class Server implements ILoggable {
 					char c;
 					SockSegment socksegment = null;
 					for (SockSegment ss : this.sockSegments) {
-						if (socksegment.getSock() == sock) {
+						if (ss.getSock() == sock) {
 							socksegment = ss;
 							break;
 						}
