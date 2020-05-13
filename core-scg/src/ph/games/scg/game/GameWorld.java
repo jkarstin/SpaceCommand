@@ -254,6 +254,7 @@ public class GameWorld {
 		for (UserEntity userEntity : this.userEntities) {
 			if (userEntity.getUser().getUsername().equals(username)) {
 				entity = userEntity.getEntity();
+				break;
 			}
 		}
 		
