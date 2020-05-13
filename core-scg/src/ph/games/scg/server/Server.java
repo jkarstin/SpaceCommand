@@ -40,6 +40,8 @@ public class Server implements ILoggable {
 	private static final int VERSION_LO = 3;
 	private static final int VERSION_HI = 0;
 	
+	private ServerUI serverUI;
+	
 	//Server socket
 	private ServerSocket serverSock;
 	//Server metadata
@@ -71,7 +73,9 @@ public class Server implements ILoggable {
 	//Broadcast Queue
 	private ArrayList<UserMessage> broadcastQ;
 	
-	public Server(int port, int timeout) {
+	public Server(int port, int timeout, ServerUI serverUI) {
+		this.serverUI = serverUI;
+		
 		this.serverSock = null;
 		this.port = port;
 		this.opened = false;
@@ -93,7 +97,7 @@ public class Server implements ILoggable {
 		this.directMessageQ = new ArrayList<UserMessage>();
 		this.broadcastQ = new ArrayList<UserMessage>();
 	}
-	public Server(int port) { this(port, DEFAULT_SO_TIMEOUT); }
+	public Server(int port, ServerUI serverUI) { this(port, DEFAULT_SO_TIMEOUT, serverUI); }
 	
 	public void open() {
 		if (this.serverSock == null) try {
@@ -104,8 +108,10 @@ public class Server implements ILoggable {
 			this.opened = true;
 			this.uptime = 0f;
 			Debug.log("Successfully opened server: " + this);
+			this.serverUI.log("Successfully opened server: " + this);
 		} catch (Exception e) {
 			Debug.warn("Failed to open server: " + this);
+			this.serverUI.log("Failed to open server: " + this);
 			e.printStackTrace();
 		}
 	}
@@ -136,6 +142,7 @@ public class Server implements ILoggable {
 		}
 		catch (Exception e) {
 			Debug.warn("Failed to accept client!");
+			this.serverUI.log("Failed to accept client!");
 			e.printStackTrace();
 		}
 
@@ -143,6 +150,7 @@ public class Server implements ILoggable {
 			this.socks.add(sock);
 			this.sockSegments.add(new SockSegment(sock));
 			Debug.log("Accepted client: " + sock.toString());
+			this.serverUI.log("Accepted client: " + sock.toString());
 		}
 	}
 	
@@ -194,9 +202,11 @@ public class Server implements ILoggable {
 					socksegment.setSegment(segment);
 					
 					//Log the messages received for debugging purposes
+					this.serverUI.log("Received Messages [" + this.messages.size() + "]:");
 					Debug.log("Received Messages [" + this.messages.size() + "]:");
 					for (String message : this.messages) {
 						Debug.log(message);
+						this.serverUI.log(message);
 					}
 				}
 			}
@@ -301,6 +311,7 @@ public class Server implements ILoggable {
 				for (User reguser : this.registeredUsers) {
 					if (reguser.getUsername().equals(logincmd.getUsername()) && reguser.hasPassword(logincmd.getPassword())) {
 						Debug.log("User logged in: " + reguser + " @ " + logincmd.getSock());
+						this.serverUI.log("User logged in: " + reguser.getUsername());
 						user = reguser;
 						this.usersocks.add(new UserSock(reguser, logincmd.getSock()));
 						success = true;
@@ -310,6 +321,7 @@ public class Server implements ILoggable {
 				
 				if (!success) {
 					Debug.log("Login attempt failed: Incorrect username or password");
+					this.serverUI.log("Login attempt failed: Incorrect username or password");
 					Debug.logv(this.registeredUsers);
 				}
 				
@@ -465,6 +477,7 @@ public class Server implements ILoggable {
 			this.serverSock.close();
 			this.opened = false;
 			Debug.log("Successfully closed server: " + this + " uptime=" + this.uptime + " s");
+			this.serverUI.log("Successfully closed server: " + this + " uptime=" + this.uptime + " s");
 		} catch (Exception e) {
 			Debug.warn("Failed to close server: " + this);
 			e.printStackTrace();
@@ -501,12 +514,14 @@ public class Server implements ILoggable {
 			
 			for (UserSock usersock : this.usersocks) {
 				Debug.log("Broadcasting message to User " + usersock.getUser().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+				this.serverUI.log("Broadcasting message to User " + usersock.getUser().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
 				write(usersock.getSock(), "[" + sender + "] " + usermessage.getMessage());
 			}
 			
 		}
 		else {
 			Debug.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+			this.serverUI.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
 			write(sock, "[" + sender + "] " + usermessage.getMessage());
 		}
 	}
