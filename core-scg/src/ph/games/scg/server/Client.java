@@ -179,24 +179,26 @@ public class Client implements Disposable {
 			switch (cmd.getType()) {
 			case LOGIN:
 				LoginCommand logincmd = (LoginCommand)cmd;
-				//TODO: Be sure to not create a UserEntity if this user is the one that sent the login request... if that makes sense (don't want a ghost of yourself following you, y'know?)
-				if (this.user != null && this.user.getUsername().equals(logincmd.getUsername())) {
-					//This is the user who made the login request
-				}
-				else {
+				if (this.user != null && !this.user.getUsername().equals(logincmd.getUsername())) {
 					//Add new UserEntity to GameWorld
 					this.gameWorld.addUserEntity(logincmd.getUsername());
 				}
 				break;
 			case LOGOUT:
 				//TODO: Similar to \login, we don't want to cause problems for the user to sent the request
+				LogoutCommand logoutcmd = (LogoutCommand)cmd;
+				if (this.user != null && !this.user.getUsername().equals(logoutcmd.getUsername())) {
+					//Remove UserEntity from GameWorld
+					this.gameWorld.removeUserEntity(logoutcmd.getUsername());
+				}
 				break;
 			case MOVE:
+				MoveCommand movecmd = (MoveCommand)cmd;
+				this.gameWorld.updateUserEntity(movecmd.getName(), movecmd.getMoveVector(), movecmd.getFacing(), movecmd.getDeltaTime());
 				break;
 			default:
 				break;
 			}
-			
 			
 			
 		}

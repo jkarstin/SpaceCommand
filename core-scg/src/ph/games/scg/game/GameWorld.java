@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.math.Vector3;
 //See <http://javadox.com/com.badlogicgames.gdx/gdx-bullet/1.3.1/overview-summary.html> for API info
 import com.badlogic.gdx.physics.bullet.Bullet;
 import com.badlogic.gdx.physics.bullet.DebugDrawer;
@@ -13,6 +14,7 @@ import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 
 import ph.games.scg.component.CharacterComponent;
+import ph.games.scg.component.UserEntityComponent;
 import ph.games.scg.environment.Room;
 import ph.games.scg.environment.Room.Quad;
 import ph.games.scg.server.Client;
@@ -20,6 +22,7 @@ import ph.games.scg.server.User;
 import ph.games.scg.system.BulletSystem;
 import ph.games.scg.system.PlayerSystem;
 import ph.games.scg.system.RenderSystem;
+import ph.games.scg.system.UserEntitySystem;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.EntityFactory;
@@ -33,6 +36,7 @@ public class GameWorld {
 	private Entity character;
 	private GameUI gameUI;
 	private Client client;
+	private UserEntitySystem userEntitySystem;
 	private PlayerSystem playerSystem;
 	private RenderSystem renderSystem;
 	
@@ -75,6 +79,7 @@ public class GameWorld {
 	private void addSystems() {
 		this.engine.addSystem(this.renderSystem = new RenderSystem());
 		this.engine.addSystem(this.bulletSystem = new BulletSystem());
+		this.engine.addSystem(this.userEntitySystem = new UserEntitySystem());
 		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI));
 		if (Debug.isOn()) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
 	}
@@ -243,6 +248,23 @@ public class GameWorld {
 		}
 	}
 	
+	public void updateUserEntity(String username, Vector3 moveVector, float facing, float deltaTime) {
+		
+		Entity entity = null;
+		for (UserEntity userEntity : this.userEntities) {
+			if (userEntity.getUser().getUsername().equals(username)) {
+				entity = userEntity.getEntity();
+			}
+		}
+		
+		if (entity != null) {
+			UserEntityComponent uec = entity.getComponent(UserEntityComponent.class);
+			uec.queuedMovement.add(moveVector);
+			uec.queuedRotation.add(facing);
+			uec.queuedDeltaTime.add(deltaTime);
+		}
+	}
+	
 	public void addUserEntity(String username) {
 		UserEntity userEntity = new UserEntity(new User(username), EntityFactory.createUserEntity(this.bulletSystem, 10f, 16f, 18f));
 		this.engine.addEntity(userEntity.getEntity());
@@ -279,5 +301,7 @@ public class GameWorld {
 		}
 		
 	}
+
+
 	
 }
