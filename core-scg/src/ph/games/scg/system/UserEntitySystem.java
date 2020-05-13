@@ -37,6 +37,10 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			cc = entity.getComponent(CharacterComponent.class);
 			uec = entity.getComponent(UserEntityComponent.class);
 
+			//Get position
+			Vector3 position = new Vector3();
+			cc.ghostObject.getWorldTransform().getTranslation(position);
+			
 			//Get rotation
 			Quaternion quat = new Quaternion();
 			mc.instance.transform.getRotation(quat);
@@ -78,9 +82,6 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 				}
 			}
 			
-			//Get current location
-			Vector3 position = new Vector3();
-			mc.instance.transform.getTranslation(position);
 			//Apply translation
 			position.add(translationVector);
 			mc.instance.transform.setTranslation(position);
