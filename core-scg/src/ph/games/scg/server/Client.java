@@ -26,6 +26,7 @@ public class Client implements Disposable {
 	private Socket sock;
 	private int soTimeout;
 	private byte[] buff;
+	private ArrayList<String> outboundMessages;
 	private ArrayList<String> messages;
 	private String segment;
 	private boolean opened;
@@ -40,6 +41,7 @@ public class Client implements Disposable {
 		
 		this.user = null;
 		this.soTimeout = timeout;
+		this.outboundMessages = new ArrayList<String>();
 		this.messages = new ArrayList<String>();
 		this.buff = new byte[BYTE_BUFFER_SIZE];
 		this.segment = "";
@@ -50,8 +52,6 @@ public class Client implements Disposable {
 		this.commandsFromServer = new ArrayList<Command>();
 		
 		this.open(serverIP, serverPort);
-		
-		this.login("phrongorre", "pancakes99");
 	}
 	public Client(String serverIP, int serverPort) { this(serverIP, serverPort, DEFAULT_SO_TIMEOUT); }
 	
@@ -70,6 +70,10 @@ public class Client implements Disposable {
 			Debug.warn("Failed to open Client: " + this);
 			e.printStackTrace();
 		}
+	}
+	
+	public void queueMessage(String message) {
+		this.outboundMessages.add(message);
 	}
 	
 	private void login(String username, String password) {
@@ -139,6 +143,10 @@ public class Client implements Disposable {
 		}
 		
 		this.outgoingCommands.clear();
+		
+		//Send outbound messages
+		this.write(this.outboundMessages);
+		this.outboundMessages.clear();
 	}
 	
 	//Attempt to read from the socket and count number of messages

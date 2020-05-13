@@ -300,8 +300,8 @@ public class Server implements ILoggable {
 		User user, target;
 		
 		for (Command command : this.commandQ) {
+			this.serverUI.log(command);
 			switch (command.getType()) {
-			
 			
 			case LOGIN:
 				LoginCommand logincmd = (LoginCommand)command;
@@ -357,6 +357,7 @@ public class Server implements ILoggable {
 						user = usersock.getUser();
 						this.usersocks.remove(usersock);
 						Debug.log("User logout successful: " + user + " @ " + usersock.getSock());
+						this.serverUI.log("User logout successful: " + user.getUsername());
 						success = true;
 						break;
 					}

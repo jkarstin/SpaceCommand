@@ -41,7 +41,7 @@ public class Core extends Game {
 	
 	@Override
 	public void create () {
-		Debug.setMode(DEBUG_MODE.OFF);
+		Debug.setMode(DEBUG_MODE.ON);
 		
 		new Assets();
 		Settings.load();
