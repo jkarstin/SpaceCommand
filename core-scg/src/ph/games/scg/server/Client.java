@@ -51,7 +51,7 @@ public class Client implements Disposable {
 		this.messages.add("\\version");
 		this.messages.add("\\tell roger who can it be now?");
 		this.messages.add("\\say Hello world!");
-		this.messages.add("\\move phrongorre 10.50,20.99,8.01,260.0,193");
+		this.messages.add("\\move phrongorre 10.50,20.99,8.01,260.0,1");
 		this.write(this.messages);
 		this.messages.clear();
 	}
