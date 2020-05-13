@@ -33,6 +33,7 @@ import ph.games.scg.component.BulletComponent;
 import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.PlayerComponent;
+import ph.games.scg.component.UserEntityComponent;
 import ph.games.scg.environment.Room.Quad;
 import ph.games.scg.system.BulletSystem;
 
@@ -223,7 +224,9 @@ public class EntityFactory {
 	}
 
 	public static Entity createUserEntity(BulletSystem bulletSystem, float x, float y, float z) {
-		return EntityFactory.createCharacter(bulletSystem, x, y, z);
+		Entity entity = EntityFactory.createCharacter(bulletSystem, x, y, z);
+		entity.add(new UserEntityComponent());
+		return entity;
 	}
 
 }
