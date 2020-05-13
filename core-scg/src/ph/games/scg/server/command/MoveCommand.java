@@ -11,13 +11,15 @@ public class MoveCommand extends Command {
 	private float facing;
 	private float dt;
 	
-	public MoveCommand(Socket sock, String name, float x, float y, float z, float theta, float delta) {
+	public MoveCommand(Socket sock, String name, Vector3 movement, float theta, float delta) {
 		super(CMD_TYP.MOVE, sock);
 		this.name = name;
-		this.moveVector = new Vector3(x, y, z);
+		this.moveVector = movement;
 		this.facing = theta;
 		this.dt = delta;
 	}
+	public MoveCommand(Socket sock, String name, float x, float y, float z, float theta, float delta) { this(sock, name, new Vector3(x, y, z), theta, delta); }
+	public MoveCommand(String name, Vector3 movement, float theta, float delta) { this(null, name, movement, theta, delta); }
 	public MoveCommand(Socket sock, String name, String args) {
 		super(CMD_TYP.MOVE, sock);
 		this.name = name;

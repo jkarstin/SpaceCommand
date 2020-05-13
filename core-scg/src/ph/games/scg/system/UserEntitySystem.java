@@ -6,7 +6,6 @@ import com.badlogic.ashley.core.EntityListener;
 import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.utils.ImmutableArray;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 
@@ -45,6 +44,7 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			Quaternion quat = new Quaternion();
 			mc.instance.transform.getRotation(quat);
 			float facing = quat.getAngleAround(Vector3.Y);
+			float deltaRotation = 0f;
 			
 			Vector3 translationVector = new Vector3();
 			
@@ -86,7 +86,7 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			position.add(translationVector);
 			mc.instance.transform.setTranslation(position);
 			//Apply rotation
-			//mc.instance.transform.setToRotation(Vector3.Y, facing);
+//			mc.instance.transform.rotate(Vector3.Y, degrees);
 			
 			cc.walkDirection.set(0f, 0f, 0f);
 			cc.walkDirection.add(translationVector);

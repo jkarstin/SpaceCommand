@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
 
 import ph.games.scg.game.GameWorld;
@@ -52,6 +53,7 @@ public class Client implements Disposable {
 		this.messages.add("\\tell roger who can it be now?");
 		this.messages.add("\\say Hello world!");
 		this.messages.add("\\move phrongorre 10.50,0.0,8.01,0.0,1");
+		this.messages.add("\\move phrongorre 1.0,10.0,-5.0,0.0,0.5");
 		this.write(this.messages);
 		this.messages.clear();
 	}
@@ -86,6 +88,14 @@ public class Client implements Disposable {
 		
 		this.user = null;
 		this.write("\\logout");
+	}
+	
+	public void move(Vector3 movement, float facing, float dt) {
+		if (!this.isOpen()) return;
+		
+		if (this.user != null) {
+			write((new MoveCommand(this.user.getUsername(), movement, facing, dt)).toCommandString());
+		}
 	}
 	
 	public void update(float dt) {
