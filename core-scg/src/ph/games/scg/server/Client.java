@@ -52,12 +52,6 @@ public class Client implements Disposable {
 		this.open(serverIP, serverPort);
 		
 		this.login("phrongorre", "pancakes99");
-		
-		this.messages.add("\\version");
-		this.messages.add("\\tell roger who can it be now?");
-		this.messages.add("\\say Hello world!");
-		this.write(this.messages);
-		this.messages.clear();
 	}
 	public Client(String serverIP, int serverPort) { this(serverIP, serverPort, DEFAULT_SO_TIMEOUT); }
 	
@@ -116,9 +110,34 @@ public class Client implements Disposable {
 	}
 	
 	private void sendCommands() {
+		
+		ArrayList<MoveCommand> condensedMoves = new ArrayList<MoveCommand>();
+		
 		for (Command command : this.outgoingCommands) {
-			this.write(command.toCommandString());
+			switch (command.getType()) {
+			case MOVE:
+				MoveCommand movecmd = (MoveCommand)command;
+				String username = movecmd.getName();
+				boolean match = false;
+				for (MoveCommand mc : condensedMoves) {
+					if (mc.getName().equals(username)) {
+						mc.addMoveCommand(movecmd);
+						match = true;
+						break;
+					}
+				}
+				if (!match) condensedMoves.add(movecmd);
+				break;
+			default:
+				this.write(command.toCommandString());
+				break;
+			}
 		}
+		
+		for (MoveCommand cmd : condensedMoves) {
+			this.write(cmd.toCommandString());
+		}
+		
 		this.outgoingCommands.clear();
 	}
 	

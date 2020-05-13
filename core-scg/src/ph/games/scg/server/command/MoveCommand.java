@@ -38,6 +38,12 @@ public class MoveCommand extends Command {
 	}
 	public MoveCommand(String name, String args) { this(null, name, args); }
 	
+	public void addMoveCommand(MoveCommand other) {
+		this.moveVector.add(other.moveVector);
+		this.facing = other.facing;
+		this.dt += other.dt;
+	}
+	
 	public String getName() {
 		return this.name;
 	}
