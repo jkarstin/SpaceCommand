@@ -19,7 +19,6 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 
 	private ImmutableArray<Entity> entities;
 	private float dtRemaining;
-	private Quaternion quat = new Quaternion();
 
 	@Override
 	public void addedToEngine(Engine engine) {
@@ -38,8 +37,13 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			cc = entity.getComponent(CharacterComponent.class);
 			uec = entity.getComponent(UserEntityComponent.class);
 
-			Vector3 movement = new Vector3();
-
+			//Get rotation
+			Quaternion quat = new Quaternion();
+			mc.instance.transform.getRotation(quat);
+			float facing = quat.getAngleAround(Vector3.Y);
+			
+			Vector3 translationVector = new Vector3();
+			
 			this.dtRemaining = dt;
 			while (this.dtRemaining > 0f && uec.queuedDeltaTime.size() > 0) {
 
@@ -50,17 +54,17 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 				Debug.log("Queued movement data: " + queuedMovement + "," + queuedRotation + "," + queuedDeltaTime);
 
 				cc.characterDirection.set(0f, 0f, 0f);
-
+				
 				//If full movement can be applied, apply
 				if (this.dtRemaining >= queuedDeltaTime) {
-					movement.add(queuedMovement);
-//					theta += queuedRotation;
+					translationVector.add(queuedMovement);
+					facing = queuedRotation;
 					this.dtRemaining -= queuedDeltaTime;
 				}
 				//If full movement cannot be applied, calculate percentage and move by that much; re-queue remaining amount
 				else {
 					float percentage = this.dtRemaining/queuedDeltaTime;
-					float queuedRotationPortion = queuedRotation*percentage;
+					float queuedRotationPortion = (queuedRotation-facing)*percentage;
 					Vector3 queuedMovementPortion = queuedMovement.cpy();
 					queuedMovementPortion.scl(percentage);
 
@@ -68,27 +72,50 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 					uec.queuedRotation.add(0, queuedRotation*(1f-percentage));
 					uec.queuedMovement.add(0, queuedMovement.scl(1f-percentage));
 
-					movement.add(queuedMovementPortion);
-//					theta += queuedRotationPortion;
+					translationVector.add(queuedMovementPortion);
+					facing += queuedRotationPortion;
 					this.dtRemaining = 0f;
 				}
 			}
-
-			float theta = (float)(Math.atan2(movement.x, movement.z));
-
-			//Calculate the rotation
-			Quaternion rot = quat.setFromAxis(0f, 1f, 0f, (float)Math.toDegrees(theta) + 90f);
-			//Walk
-			Matrix4 ghost = new Matrix4();
-			Vector3 translation = new Vector3();
-			cc.ghostObject.getWorldTransform(ghost);
-			ghost.getTranslation(translation);
-			mc.instance.transform.set(translation.x, translation.y, translation.z, rot.x, rot.y, rot.z, rot.w);
-			cc.characterDirection.set(-1f, 0f, 0f).rotate(Vector3.Y, theta);//.rot(mc.instance.transform);
+			
+			//Get current location
+			Vector3 position = new Vector3();
+			mc.instance.transform.getTranslation(position);
+			//Apply translation
+			position.add(translationVector);
+			mc.instance.transform.setTranslation(position);
+			//Apply rotation
+			mc.instance.transform.setToRotation(Vector3.Y, facing);
+			
 			cc.walkDirection.set(0f, 0f, 0f);
-			cc.walkDirection.add(cc.characterDirection);
-			cc.walkDirection.scl(movement.len());
+			cc.walkDirection.add(translationVector);
 			cc.characterController.setWalkDirection(cc.walkDirection);
+			
+			
+			
+			
+			
+			
+			
+//			Vector3 movement = new Vector3();
+//
+
+//
+//			float theta = (float)(Math.atan2(movement.x, movement.z));
+//
+//			//Calculate the rotation
+//			Quaternion rot = quat.setFromAxis(0f, 1f, 0f, (float)Math.toDegrees(theta) + 90f);
+//			//Walk
+//			Matrix4 ghost = new Matrix4();
+//			Vector3 translation = new Vector3();
+//			cc.ghostObject.getWorldTransform(ghost);
+//			ghost.getTranslation(translation);
+//			mc.instance.transform.set(translation.x, translation.y, translation.z, rot.x, rot.y, rot.z, rot.w);
+//			cc.characterDirection.set(-1f, 0f, 0f).rotate(Vector3.Y, theta);//.rot(mc.instance.transform);
+//			cc.walkDirection.set(0f, 0f, 0f);
+//			cc.walkDirection.add(cc.characterDirection);
+//			cc.walkDirection.scl(movement.len());
+//			cc.characterController.setWalkDirection(cc.walkDirection);
 		}
 	}
 
