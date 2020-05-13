@@ -48,7 +48,6 @@ public class Client implements Disposable {
 		
 		this.open(serverIP, serverPort);
 		
-		//TODO: test login capabilities
 		this.login("phrongorre", "pancakes99");
 		
 		this.messages.add("\\version");
@@ -101,6 +100,7 @@ public class Client implements Disposable {
 	}
 	
 	public void update(float dt) {
+		this.sendCommands();
 		this.read();
 		this.executeServerCommands();
 		this.displayMessages();
