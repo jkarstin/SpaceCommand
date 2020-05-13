@@ -37,7 +37,7 @@ public class Server implements ILoggable {
 	private static final int DEFAULT_SO_TIMEOUT = 50;
 	
 	private static final int BYTE_BUFFER_SIZE = 64;
-	private static final int VERSION_LO = 2;
+	private static final int VERSION_LO = 3;
 	private static final int VERSION_HI = 0;
 	
 	//Server socket
