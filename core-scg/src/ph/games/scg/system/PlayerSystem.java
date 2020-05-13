@@ -113,12 +113,14 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 			this.camera.direction.rotate(tmp, -2*this.turnSpeed/3f);
 		}
 
+		movement.scl(10f * dt);
+		
 		if (recordMovement) this.client.move(movement, rotation, dt);
 
 		this.characterComponent.walkDirection.add(movement);
 		this.camera.rotate(this.camera.up, rotation);
 
-		this.characterComponent.walkDirection.scl(10f * dt);
+//		this.characterComponent.walkDirection.scl(10f * dt);
 		this.characterComponent.characterController.setWalkDirection(this.characterComponent.walkDirection);
 
 		//Move
