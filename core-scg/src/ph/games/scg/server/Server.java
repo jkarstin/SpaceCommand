@@ -55,7 +55,7 @@ public class Server implements ILoggable {
 	//Message reading
 	private byte[] buff;
 	private ArrayList<String> messages;
-	private String segment;
+	private ArrayList<SockSegment> sockSegments;
 	private StringTokenizer stoker;
 	
 	//User ArrayList
@@ -80,7 +80,7 @@ public class Server implements ILoggable {
 		
 		this.buff = new byte[BYTE_BUFFER_SIZE];
 		this.messages = new ArrayList<String>();
-		this.segment = "";
+		this.sockSegments = new ArrayList<SockSegment>();
 		this.stoker = null;
 		
 		this.registeredUsers = new ArrayList<User>();
@@ -141,6 +141,7 @@ public class Server implements ILoggable {
 
 		if (sock != null) {
 			this.socks.add(sock);
+			this.sockSegments.add(new SockSegment(sock));
 			Debug.log("Accepted client: " + sock.toString());
 		}
 	}
@@ -150,9 +151,6 @@ public class Server implements ILoggable {
 		
 		//Attempt to read in server messages
 		for (Socket sock : this.socks) {
-			
-			//TODO: Will cause problems with the current design if multiple sockets write at the same time!
-			//		Need to make sure to have a separate "segment" object for each Socket so we don't get mixed messages.
 			
 			//Attempt to get messages
 			//Read in from InputStream and break into messages at '\n' occurences
@@ -167,16 +165,33 @@ public class Server implements ILoggable {
 				//If bytes were read, process
 				if (num > 0) {
 					char c;
+					SockSegment socksegment = null;
+					for (SockSegment ss : this.sockSegments) {
+						if (socksegment.getSock() == sock) {
+							socksegment = ss;
+							break;
+						}
+					}
+					
+					if (socksegment == null) {
+						Debug.warn("No SockSegment found for this Socket: " + sock);
+						break;
+					}
+					
+					String segment = socksegment.getSegment();
+					
 					for (int b=0; b < num; b++) {
 						c = (char)(this.buff[b]);
 						Debug.logv("[" + b + "]\t" + c);
 						//Store segment as new message and reset segment
 						if (c == '\n') {
-							this.messages.add(this.segment);
-							this.segment = "";
+							this.messages.add(segment);
+							segment = "";
 						}
-						else this.segment += (char)(this.buff[b]);
+						else segment += (char)(this.buff[b]);
 					}
+					
+					socksegment.setSegment(segment);
 					
 					//Log the messages received for debugging purposes
 					Debug.log("Received Messages [" + this.messages.size() + "]:");
@@ -544,6 +559,30 @@ public class Server implements ILoggable {
 		if (this.isOpen()) str += "{serverSock=" + this.serverSock.toString() + " hostname=" + this.hostname + " hostaddress=" + this.hostaddress + "}";
 		else str += "{serverSock=" + this.serverSock.toString() + "}";
 		return str;
+	}
+	
+	private static class SockSegment {
+		
+		private Socket sock;
+		private String segment;
+		
+		public SockSegment(Socket sock) {
+			this.sock = sock;
+			this.segment = "";
+		}
+		
+		public Socket getSock() {
+			return this.sock;
+		}
+		
+		public void setSegment(String segment) {
+			this.segment = segment;
+		}
+		
+		public String getSegment() {
+			return this.segment;
+		}
+		
 	}
 	
 	private static class UserSock {
