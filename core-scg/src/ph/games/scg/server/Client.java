@@ -20,6 +20,7 @@ public class Client implements Disposable {
 
 	private static final int BYTE_BUFFER_SIZE = 64;
 	private static final int DEFAULT_SO_TIMEOUT = 50;
+	private static final float SEND_FREQUENCY = 0.33f;
 	
 	private User user;
 	private Socket sock;
@@ -30,6 +31,7 @@ public class Client implements Disposable {
 	private boolean opened;
 	
 	private GameWorld gameWorld;
+	private float timer;
 	private ArrayList<Command> outgoingCommands;
 	private ArrayList<Command> commandsFromServer;
 	
@@ -43,6 +45,7 @@ public class Client implements Disposable {
 		this.segment = "";
 		this.opened = false;
 		
+		this.timer = 0f;
 		this.outgoingCommands = new ArrayList<Command>();
 		this.commandsFromServer = new ArrayList<Command>();
 		
@@ -53,8 +56,6 @@ public class Client implements Disposable {
 		this.messages.add("\\version");
 		this.messages.add("\\tell roger who can it be now?");
 		this.messages.add("\\say Hello world!");
-		this.messages.add("\\move phrongorre 10.50,0.0,8.01,0.0,1");
-		this.messages.add("\\move phrongorre 1.0,10.0,-5.0,0.0,0.5");
 		this.write(this.messages);
 		this.messages.clear();
 	}
@@ -100,7 +101,11 @@ public class Client implements Disposable {
 	}
 	
 	public void update(float dt) {
-		this.sendCommands();
+		this.timer += dt;
+		if (this.timer >= SEND_FREQUENCY) {
+			this.sendCommands();
+			this.timer -= SEND_FREQUENCY;
+		}
 		this.read();
 		this.executeServerCommands();
 		this.displayMessages();
