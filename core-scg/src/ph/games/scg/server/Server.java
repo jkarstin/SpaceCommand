@@ -308,8 +308,16 @@ public class Server implements ILoggable {
 				
 				
 			case VERSION:
+				user = null;
+				for (UserSock usersock : this.usersocks) {
+					if (usersock.getSock() == command.getSock()) {
+						user = usersock.getUser();
+						break;
+					}
+				}
+				
 				String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
-				this.directMessageQ.add(new UserMessage(version));
+				this.directMessageQ.add(new UserMessage(null, version, user));
 				
 				break;
 				
