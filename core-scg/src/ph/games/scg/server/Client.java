@@ -73,7 +73,21 @@ public class Client implements Disposable {
 	}
 	
 	public void queueMessage(String message) {
-		this.outboundMessages.add(message);
+		String[] tokens = message.split(" ");
+		if (tokens != null && tokens.length > 0) {
+			switch (tokens[0]) {
+			case "\\login":
+				this.login(tokens[1], tokens[2]);
+				break;
+			case "\\logout":
+				this.logout();
+				break;
+			default:
+				this.outboundMessages.add(message);
+				break;
+			}
+		}
+		else this.outboundMessages.add(message);
 	}
 	
 	private void login(String username, String password) {
