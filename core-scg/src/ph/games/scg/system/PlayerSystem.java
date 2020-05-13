@@ -87,7 +87,7 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 			movement.add(this.camera.direction);
 		//         this.characterComponent.walkDirection.add(this.camera.direction);
 		if (Gdx.input.isKeyPressed(Input.Keys.S))
-			movement.add(this.camera.direction);
+			movement.sub(this.camera.direction);
 		//         this.characterComponent.walkDirection.sub(this.camera.direction);
 		if (Gdx.input.isKeyPressed(Input.Keys.A))
 			rotation += this.turnSpeed;

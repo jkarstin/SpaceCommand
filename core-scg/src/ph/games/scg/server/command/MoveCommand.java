@@ -54,6 +54,7 @@ public class MoveCommand extends Command {
 		return this.dt;
 	}
 	
+	@Override
 	public String toCommandString() {
 		return "\\move " + this.name + " " + this.moveVector.x + "," + this.moveVector.y + "," + this.moveVector.z + "," + this.facing + "," + this.dt;
 	}

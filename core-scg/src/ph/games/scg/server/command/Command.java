@@ -25,6 +25,8 @@ public abstract class Command implements ILoggable {
 		this.sock = sock;
 	}
 	
+	public abstract String toCommandString();
+	
 	public CMD_TYP getType() {
 		return this.type;
 	}

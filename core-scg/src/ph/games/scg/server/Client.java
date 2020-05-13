@@ -30,6 +30,7 @@ public class Client implements Disposable {
 	private boolean opened;
 	
 	private GameWorld gameWorld;
+	private ArrayList<Command> outgoingCommands;
 	private ArrayList<Command> commandsFromServer;
 	
 	public Client(String serverIP, int serverPort, int timeout) {
@@ -42,6 +43,7 @@ public class Client implements Disposable {
 		this.segment = "";
 		this.opened = false;
 		
+		this.outgoingCommands = new ArrayList<Command>();
 		this.commandsFromServer = new ArrayList<Command>();
 		
 		this.open(serverIP, serverPort);
@@ -80,21 +82,21 @@ public class Client implements Disposable {
 		if (!this.isOpen()) return;
 		
 		this.user = new User(username, password);
-		this.write("\\login " + username + " " + password);
+		this.outgoingCommands.add(new LoginCommand(username, password));
 	}
 	
 	private void logout() {
 		if (!this.isOpen()) return;
 		
 		this.user = null;
-		this.write("\\logout");
+		this.outgoingCommands.add(new LogoutCommand());
 	}
 	
 	public void move(Vector3 movement, float facing, float dt) {
 		if (!this.isOpen()) return;
 		
 		if (this.user != null) {
-			write((new MoveCommand(this.user.getUsername(), movement, facing, dt)).toCommandString());
+			this.outgoingCommands.add(new MoveCommand(this.user.getUsername(), movement, facing, dt));
 		}
 	}
 	
@@ -106,6 +108,13 @@ public class Client implements Disposable {
 	
 	private boolean isOpen() {
 		return this.opened;
+	}
+	
+	private void sendCommands() {
+		for (Command command : this.outgoingCommands) {
+			this.write(command.toCommandString());
+		}
+		this.outgoingCommands.clear();
 	}
 	
 	//Attempt to read from the socket and count number of messages

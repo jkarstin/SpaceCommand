@@ -17,9 +17,17 @@ public class LogoutCommand extends Command {
 	}
 	public LogoutCommand(String username) { this(null, username); }
 	public LogoutCommand(Socket sock) { this(sock, null); }
+	public LogoutCommand() { this(null, null); }
 	
 	public String getUsername() {
 		return this.username;
+	}
+	
+	@Override
+	public String toCommandString() {
+		String str = "\\logout";
+		if (this.username != null) str += " " + this.username;
+		return str;
 	}
 	
 	@Override

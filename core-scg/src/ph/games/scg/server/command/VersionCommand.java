@@ -13,6 +13,11 @@ public class VersionCommand extends Command {
 	}
 	
 	@Override
+	public String toCommandString() {
+		return "\\version";
+	}
+	
+	@Override
 	public String toString() {
 		return super.toString() + "_VERSION{sock=" + this.getSock() + "}";
 	}

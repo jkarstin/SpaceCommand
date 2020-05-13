@@ -20,6 +20,11 @@ public class SayCommand extends Command {
 	}
 	
 	@Override
+	public String toCommandString() {
+		return "\\say " + this.message;
+	}
+	
+	@Override
 	public String toString() {
 		return super.toString() + "_SAY{sock=" + this.getSock() + " message=" + this.message + "}";
 	}

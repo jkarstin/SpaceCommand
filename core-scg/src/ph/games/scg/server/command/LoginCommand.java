@@ -17,6 +17,7 @@ public class LoginCommand extends Command {
 		
 		Debug.logv("New Command: " + this);
 	}
+	public LoginCommand(String username, String password) { this(null, username, password); }
 	public LoginCommand(String username) {
 		this(null, username, null);
 	}
@@ -27,6 +28,13 @@ public class LoginCommand extends Command {
 	
 	public String getPassword() {
 		return this.password;
+	}
+	
+	@Override
+	public String toCommandString() {
+		String str = "\\login " + this.username;
+		if (this.password != null) str += " " + this.password;
+		return str;
 	}
 	
 	@Override
