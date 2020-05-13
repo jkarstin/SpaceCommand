@@ -7,9 +7,11 @@ import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.EntityListener;
 import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Family;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 
 import ph.games.scg.component.CharacterComponent;
+import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.UserEntityComponent;
 import ph.games.scg.util.Debug;
 
@@ -63,6 +65,18 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 					this.dtRemaining = 0f;
 				}
 			}
+			
+			//Move
+			Matrix4 ghost = new Matrix4();
+			Vector3 translation = new Vector3();
+			ModelComponent mc = entity.getComponent(ModelComponent.class);
+			cc.ghostObject.getWorldTransform(ghost);
+			ghost.getTranslation(translation);
+			mc.instance.transform.set(
+					translation.x, translation.y, translation.z,
+					cc.characterDirection.x, cc.characterDirection.y, cc.characterDirection.z,
+					0f
+					);
 		}
 	}
 	
