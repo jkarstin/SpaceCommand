@@ -76,7 +76,7 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			}
 
 			//Calculate the rotation
-			Quaternion rot = quat.setFromAxis(0f, 1f, 0f, (float)Math.toDegrees(theta) + 90f);
+			Quaternion rot = quat.setFromAxis(0f, 1f, 0f, theta);
 			//Walk
 			Matrix4 ghost = new Matrix4();
 			Vector3 translation = new Vector3();
