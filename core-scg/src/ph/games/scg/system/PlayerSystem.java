@@ -82,19 +82,28 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 
 		Vector3 movement = new Vector3();
 		float rotation = 0f;
+		boolean recordMovement = false;
 
-		if (Gdx.input.isKeyPressed(Input.Keys.W))
+		if (Gdx.input.isKeyPressed(Input.Keys.W)) {
 			movement.add(this.camera.direction);
+			recordMovement = true;
 		//         this.characterComponent.walkDirection.add(this.camera.direction);
-		if (Gdx.input.isKeyPressed(Input.Keys.S))
+		}
+		if (Gdx.input.isKeyPressed(Input.Keys.S)) {
 			movement.sub(this.camera.direction);
+			recordMovement = true;
 		//         this.characterComponent.walkDirection.sub(this.camera.direction);
-		if (Gdx.input.isKeyPressed(Input.Keys.A))
+		}
+		if (Gdx.input.isKeyPressed(Input.Keys.A)) {
 			rotation += this.turnSpeed;
+			recordMovement = true;
 		//         this.camera.rotate(this.camera.up, this.turnSpeed);
-		if (Gdx.input.isKeyPressed(Input.Keys.D))
+		}
+		if (Gdx.input.isKeyPressed(Input.Keys.D)) {
 			rotation -= this.turnSpeed;
+			recordMovement = true;
 		//         this.camera.rotate(this.camera.up, -this.turnSpeed);
+		}
 		if (Gdx.input.isKeyPressed(Input.Keys.PAGE_UP)) {
 			tmp.set(this.camera.direction).crs(this.camera.up).nor();
 			this.camera.direction.rotate(tmp, 2*this.turnSpeed/3f);
@@ -104,7 +113,7 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 			this.camera.direction.rotate(tmp, -2*this.turnSpeed/3f);
 		}
 
-		this.client.move(movement, rotation, dt);
+		if (recordMovement) this.client.move(movement, rotation, dt);
 
 		this.characterComponent.walkDirection.add(movement);
 		this.camera.rotate(this.camera.up, rotation);
