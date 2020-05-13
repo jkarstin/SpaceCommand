@@ -38,7 +38,6 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			cc = entity.getComponent(CharacterComponent.class);
 			uec = entity.getComponent(UserEntityComponent.class);
 
-			float theta = 0f;
 			Vector3 movement = new Vector3();
 
 			this.dtRemaining = dt;
@@ -55,7 +54,7 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 				//If full movement can be applied, apply
 				if (this.dtRemaining >= queuedDeltaTime) {
 					movement.add(queuedMovement);
-					theta += queuedRotation;
+//					theta += queuedRotation;
 					this.dtRemaining -= queuedDeltaTime;
 				}
 				//If full movement cannot be applied, calculate percentage and move by that much; re-queue remaining amount
@@ -70,22 +69,25 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 					uec.queuedMovement.add(0, queuedMovement.scl(1f-percentage));
 
 					movement.add(queuedMovementPortion);
-					theta += queuedRotationPortion;
+//					theta += queuedRotationPortion;
 					this.dtRemaining = 0f;
 				}
 			}
 
+			float theta = (float)(Math.atan2(movement.x, movement.z));
+
 			//Calculate the rotation
-			Quaternion rot = quat.setFromAxis(0f, 1f, 0f, theta);
+			Quaternion rot = quat.setFromAxis(0f, 1f, 0f, (float)Math.toDegrees(theta) + 90f);
 			//Walk
 			Matrix4 ghost = new Matrix4();
 			Vector3 translation = new Vector3();
 			cc.ghostObject.getWorldTransform(ghost);
 			ghost.getTranslation(translation);
 			mc.instance.transform.set(translation.x, translation.y, translation.z, rot.x, rot.y, rot.z, rot.w);
-			cc.characterDirection.set(-1f, 0f, 0f).rot(mc.instance.transform);
+			cc.characterDirection.set(-1f, 0f, 0f).rotate(Vector3.Y, theta);//.rot(mc.instance.transform);
 			cc.walkDirection.set(0f, 0f, 0f);
-			cc.walkDirection.add(movement);
+			cc.walkDirection.add(cc.characterDirection);
+			cc.walkDirection.scl(movement.len());
 			cc.characterController.setWalkDirection(cc.walkDirection);
 		}
 	}
@@ -95,5 +97,5 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 
 	@Override
 	public void entityRemoved(Entity entity) { }
-	
+
 }
