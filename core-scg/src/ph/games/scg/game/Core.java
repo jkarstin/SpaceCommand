@@ -5,7 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 
-import ph.games.scg.screen.GameScreen;
+import ph.games.scg.screen.MainMenuScreen;
 import ph.games.scg.server.Client;
 import ph.games.scg.server.Server;
 import ph.games.scg.util.Assets;
@@ -22,20 +22,8 @@ public class Core extends Game {
 	public static Client client;
 	
 	public static void setActiveScreen(Screen screen) {
-		//If current screen exists, hide and dispose it
-	      if (Core.core.screen != null) {
-	         Core.core.screen.hide();
-	         Core.core.screen.dispose();
-	      }
-	      
 	      //Set the active screen
 	      Core.core.screen = screen;
-	      
-	      //If the screen provided exists, show and resize it
-	      if (Core.core.screen != null) {
-	         Core.core.screen.show();
-	         Core.core.screen.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-	      }
 	}
 	
 	public Core() {
@@ -49,7 +37,8 @@ public class Core extends Game {
 		Core.client = new Client(Server.SERVER_IP, Server.SERVER_PORT);
 		new Assets();
 		Settings.load();
-		Core.setActiveScreen(new GameScreen());
+//		Core.setActiveScreen(new GameScreen());
+		Core.setActiveScreen(new MainMenuScreen());
 	}
 
 	@Override

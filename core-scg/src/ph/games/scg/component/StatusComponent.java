@@ -13,8 +13,8 @@ public class StatusComponent implements Component {
 
 	public StatusComponent(AnimationComponent animationComponent) {
 		this.alive = true;
+		this.running = false;
 		this.animationComponent = animationComponent;
-		this.setIdle(false);
 	}
 
 	public void update(float dt) {
@@ -27,8 +27,8 @@ public class StatusComponent implements Component {
 	
 	public void setIdle(boolean idle) {
 		this.running = !idle;
-		if (idle) this.animationComponent.animate(EnemyAnimations.IdleID, -1, 1f);
-		else this.animationComponent.animate(EnemyAnimations.BasicRunID, -1, 1f);
+		if (idle) this.animationComponent.animate(EnemyAnimations.IdleID, 0f, -1f, -1, 1f);
+		else this.animationComponent.animate(EnemyAnimations.BasicRunID, 0f, -1f, -1, 1f);
 	}
 
 }

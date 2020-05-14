@@ -138,7 +138,7 @@ public class GameWorld {
 		//Debug.log(jsonValue.toString());
 		
 		for (JsonValue jv=jsonValue.child(); jv != null; jv = jv.next()) {
-			Debug.log(jv.toString());
+//			Debug.log(jv.toString());
 			
 			//Build new Room object from JsonValue
 			Room room = new Room();
@@ -157,10 +157,12 @@ public class GameWorld {
 				
 				float[] coords = decorjv.get("coords").asFloatArray();
 				
-				q.setCoords(coords[0], coords[1], coords[2],
-							coords[3], coords[4], coords[5],
-							coords[6], coords[7], coords[8],
-							coords[9], coords[10], coords[11]);
+				q.setCorners(
+						new Vector3(coords[0], coords[1], coords[2]),
+						new Vector3(coords[3], coords[4], coords[5]),
+						new Vector3(coords[6], coords[7], coords[8]),
+						new Vector3(coords[9], coords[10], coords[11])
+						);
 				
 				room.addDecoration(q);
 			}
@@ -168,6 +170,35 @@ public class GameWorld {
 			Debug.log(room);
 			
 			//TODO: Generate room boundary Quads and add to engine
+			Vector3 pos = room.getPosition();
+			Vector3 dim = room.getDimensions();
+			//Floor
+			Quad floor = new Quad();
+			floor.setTexture(room.getFloor());
+			floor.setCorners(
+					new Vector3(pos.x-(dim.x/2f), pos.y-(dim.y/2f), pos.z-(dim.z/2f)),
+					new Vector3(pos.x+(dim.x/2f), pos.y-(dim.y/2f), pos.z-(dim.z/2f)),
+					new Vector3(pos.x+(dim.x/2f), pos.y-(dim.y/2f), pos.z+(dim.z/2f)),
+					new Vector3(pos.x-(dim.x/2f), pos.y-(dim.y/2f), pos.z+(dim.z/2f))
+					);
+			this.engine.addEntity(EntityFactory.createQuad(floor));
+			//Wall0
+			Quad wall0 = new Quad();
+			wall0.setTexture(room.getTexture());
+			wall0.setCorners(
+					new Vector3(pos.x-(dim.x/2f), pos.y-(dim.y/2f), pos.z-(dim.z/2f)),
+					new Vector3(pos.x-(dim.x/2f), pos.y+(dim.y/2f), pos.z-(dim.z/2f)),
+					new Vector3(pos.x-(dim.x/2f), pos.y+(dim.y/2f), pos.z+(dim.z/2f)),
+					new Vector3(pos.x-(dim.x/2f), pos.y-(dim.y/2f), pos.z+(dim.z/2f))
+					);
+			this.engine.addEntity(EntityFactory.createQuad(wall0));
+			//Wall1
+			
+			//Wall2
+			
+			//Wall3
+			
+			//Ceiling
 			
 			
 			//Generate and add decoration Quads to engine
@@ -180,7 +211,7 @@ public class GameWorld {
 	}
 	
 	private void addEntities() {
-		this.engine.addEntity(EntityFactory.loadScene(10f, 12f, 18f));
+		this.engine.addEntity(EntityFactory.loadScene(10f, 11f, 18f));
 		createPlayer(10f, 16f, 18f);
 //		createSpaceship(2f, 3f, 1f);
 	}

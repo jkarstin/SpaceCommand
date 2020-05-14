@@ -32,6 +32,10 @@ import ph.games.scg.util.ILoggable;
 
 public class Server implements ILoggable {
 	
+	
+	//TODO: Add functionality to do a regular "Roll Call" to make sure connected client Sockets are still active. If any closed, remove associated Users
+	
+	
 	public static final String SERVER_IP = "192.168.1.2";
 	public static final int SERVER_PORT = 21595;
 	private static final int DEFAULT_SO_TIMEOUT = 50;

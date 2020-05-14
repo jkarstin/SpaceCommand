@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.utils.Align;
 
+import ph.games.scg.game.Core;
 import ph.games.scg.util.Assets;
 import ph.games.scg.util.ILoggable;
 
@@ -16,6 +17,7 @@ public class ServerUI {
 		this.stage = new Stage();
 		
 		this.logLabel = new Label("", Assets.skin);
+		this.logLabel.setWidth(Core.VIRTUAL_WIDTH);
 		this.logLabel.setWrap(true);
 		this.logLabel.setAlignment(Align.bottomLeft);
 		

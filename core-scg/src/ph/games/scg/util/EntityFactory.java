@@ -68,25 +68,25 @@ public class EntityFactory {
 	public static Entity createQuad(Quad quad) {
 		ModelBuilder modelBuilder = new ModelBuilder();
 		Texture quadTexture = new Texture(Gdx.files.internal("./rooms/" + quad.getTexture()));
-
-		float[] coords = quad.getCoords();
-		float[] normal = quad.getNormal();
-
-		float[] dimensions = quad.getDimensions();
-
-		Debug.log("Dimensions: " + dimensions[0] + ", " + dimensions[1] + ", " + dimensions[2]);
+		
+		Vector3 bl = quad.getBottomLeft();
+		Vector3 br = quad.getBottomRight();
+		Vector3 tr = quad.getTopRight();
+		Vector3 tl = quad.getTopLeft();
+		Vector3 nml = quad.getNormal();
+		Vector3 dim = quad.getDimensions();
 
 		Model quadModel = modelBuilder.createRect(
 
 				//TODO: Close, but is having issues keeping the texture inside the collider when drawn facing the opposite direction as an orientation that works.
 				//		Might have to do with the values being passed to createStaticEntity
+				
+				bl.x, bl.y, bl.z, //texture bottom left
+				br.x, br.y, br.z, //texture bottom right
+				tr.x, tr.y, tr.z, //texture top right
+				tl.x, tl.y, tl.z, //texture top left
 
-				coords[0]-coords[0]+(dimensions[0]/2f), coords[1]-coords[1]-(dimensions[1]/2f), coords[2]-coords[2]+(dimensions[2]/2f),   //texture bottom left
-				coords[9]-coords[0]+(dimensions[0]/2f), coords[10]-coords[1]-(dimensions[1]/2f), coords[11]-coords[2]+(dimensions[2]/2f), //texture bottom right
-				coords[6]-coords[0]+(dimensions[0]/2f), coords[7]-coords[1]-(dimensions[1]/2f), coords[8]-coords[2]+(dimensions[2]/2f),   //texture top right
-				coords[3]-coords[0]+(dimensions[0]/2f), coords[4]-coords[1]-(dimensions[1]/2f), coords[5]-coords[2]+(dimensions[2]/2f),   //texture top left
-
-				normal[0], normal[1], normal[2],
+				nml.x, nml.y, nml.z, //normal vector
 
 				new Material(
 						TextureAttribute.createDiffuse(quadTexture),
@@ -98,7 +98,7 @@ public class EntityFactory {
 
 				);
 
-		return EntityFactory.createStaticEntity(quadModel, coords[0], coords[1], coords[2]);
+		return EntityFactory.createStaticEntity(quadModel, bl.x + (dim.x/2f), bl.y + (dim.y/2f), bl.z + (dim.z/2f));
 	}
 
 	public static Entity createStaticEntity(Model model, float x, float y, float z) {
@@ -229,9 +229,10 @@ public class EntityFactory {
 				);
 		bulletSystem.collisionWorld.addAction(characterComponent.characterController);
 
-		entity.add(new EnemyComponent(EnemyComponent.STATE.RUNNING));
+		entity.add(new EnemyComponent(EnemyComponent.STATE.IDLE));
 
 		AnimationComponent animationComponent = new AnimationComponent(modelComponent.instance);
+		animationComponent.animate(EnemyAnimations.IdleID, 0f, -1f, -1, 1f);
 		entity.add(animationComponent);
 
 		entity.add(new StatusComponent(animationComponent));

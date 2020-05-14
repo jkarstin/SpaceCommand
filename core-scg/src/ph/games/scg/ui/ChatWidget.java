@@ -46,6 +46,7 @@ public class ChatWidget extends Actor {
 		this.chatLog = new String[LOG_MAX_SIZE];
 		this.logLines = 0;
 		this.gameUI = gameUI;
+		Core.client.setChatWidget(this);
 		setWidgets();
 		configureWidgets();
 		setListeners();
@@ -111,6 +112,7 @@ public class ChatWidget extends Actor {
 					return true;
 				case Input.Keys.ENTER:
 					logText(chatField.getText());
+					Core.client.queueMessage(chatField.getText());
 					chatField.setText("");
 					return true;
 				default:
@@ -123,7 +125,6 @@ public class ChatWidget extends Actor {
 	
 	public void logText(String str) {
 		Debug.log(str);
-		Core.client.queueMessage(str);
 		if (this.logLines == LOG_MAX_SIZE) {
 			for (int l=0; l < LOG_MAX_SIZE-1; l++) {
 				this.chatLog[l] = this.chatLog[l+1];

@@ -14,6 +14,7 @@ import ph.games.scg.server.command.Command;
 import ph.games.scg.server.command.LoginCommand;
 import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
+import ph.games.scg.ui.ChatWidget;
 import ph.games.scg.util.Debug;
 
 public class Client implements Disposable {
@@ -27,22 +28,24 @@ public class Client implements Disposable {
 	private int soTimeout;
 	private byte[] buff;
 	private ArrayList<String> outboundMessages;
-	private ArrayList<String> messages;
+	private ArrayList<String> inboundMessages;
 	private String segment;
 	private boolean opened;
 	
 	private GameWorld gameWorld;
+	private ChatWidget chatWidget;
 	private float timer;
 	private ArrayList<Command> outgoingCommands;
 	private ArrayList<Command> commandsFromServer;
 	
 	public Client(String serverIP, int serverPort, int timeout) {
 		this.gameWorld = null;
+		this.chatWidget = null;
 		
 		this.user = null;
 		this.soTimeout = timeout;
 		this.outboundMessages = new ArrayList<String>();
-		this.messages = new ArrayList<String>();
+		this.inboundMessages = new ArrayList<String>();
 		this.buff = new byte[BYTE_BUFFER_SIZE];
 		this.segment = "";
 		this.opened = false;
@@ -59,6 +62,10 @@ public class Client implements Disposable {
 		this.gameWorld = gameWorld;
 	}
 	
+	public void setChatWidget(ChatWidget chatWidget) {
+		this.chatWidget = chatWidget;
+	}
+	
 	//Open a new Socket at specified address and port
 	private void open(String hostaddress, int port) {
 		try {
@@ -72,22 +79,86 @@ public class Client implements Disposable {
 		}
 	}
 	
+	//Processes chat messages looking for @username references; converts messages to \say or \tell commands based on results
 	public void queueMessage(String message) {
-		String[] tokens = message.split(" ");
-		if (tokens != null && tokens.length > 0) {
-			switch (tokens[0]) {
-			case "\\login":
-				this.login(tokens[1], tokens[2]);
-				break;
-			case "\\logout":
-				this.logout();
-				break;
-			default:
-				this.outboundMessages.add(message);
-				break;
+		//Make new username ArrayList
+		ArrayList<String> toUsers = new ArrayList<String>();
+		
+		//Get message as array of bytes
+		byte[] messageBytes = message.getBytes();
+		//If we have message content, look for @username instances
+		if (messageBytes.length > 0) {
+			//Set container for username candidate to empty
+			String tmpToUser = "";
+			//Set recording flag to false
+			boolean recording = false;
+			
+			//Loop through message byte characters
+			for (byte b : messageBytes) {
+				//Cast byte as character
+				char c = (char)b;
+				
+				//Check state of character
+				switch (c) {
+				//If an @ character is found, following characters make up username
+				case '@':
+					//If we were already recording, store currently recorded username and start fresh
+					if (recording) {
+						//Add candidate username to saved usernames
+						toUsers.add(tmpToUser);
+						//Reset username container
+						tmpToUser = "";
+					}
+					//Make sure to set the recording flag if it isn't already
+					if (!recording) recording = true;
+					//Done processing this character
+					break;
+				//If white space is found, end any current recording
+				case '\t':
+				case '\n':
+				case ' ':
+					//If we are currently recording, save username
+					if (recording) {
+						//Add to candidate usernames
+						toUsers.add(tmpToUser);
+						//Reset username container
+						tmpToUser = "";
+					}
+					//Stop recording
+					recording = false;
+					//Done processing this character
+					break;
+				default:
+					//If we are recording, add character to current candidate username
+					if (recording) {
+						tmpToUser += c;
+					}
+					//Done processing this character
+					break;
+				}
+			}
+			//If we reached end of message before recording finished
+			if (recording) {
+				//Add username to candidates
+				toUsers.add(tmpToUser);
+				//Reset username container
+				tmpToUser = "";
+				//Stop recording
+				recording = false;
 			}
 		}
-		else this.outboundMessages.add(message);
+		
+		//If any usernames were found
+		if (toUsers.size() > 0) {
+			//Queue up \tell commands for each username
+			for (String toUser : toUsers) {
+				this.outboundMessages.add("\\tell " + toUser + " " + message);
+			}
+			//Clear username candidate ArrayList
+			toUsers.clear();
+		}
+		//Otherwise, queue up a global \say command
+		else this.outboundMessages.add("\\say " + message);
 	}
 	
 	public void login(String username, String password) {
@@ -183,7 +254,7 @@ public class Client implements Disposable {
 					c = (char)(this.buff[b]);
 					Debug.logv("[" + b + "]\t" + c);
 					if (c == '\n') {
-						this.messages.add(this.segment);
+						this.inboundMessages.add(this.segment);
 						count++;
 						this.segment = "";
 					}
@@ -195,7 +266,7 @@ public class Client implements Disposable {
 		
 		
 		ArrayList<String> deQMessages = new ArrayList<String>();
-		for (String message : this.messages) {
+		for (String message : this.inboundMessages) {
 			String[] tokens = message.split(" ");
 			if (tokens != null && tokens.length > 2) switch (tokens[0]) {
 			case "[SERVER]":
@@ -230,7 +301,7 @@ public class Client implements Disposable {
 		}
 		
 		//Remove messages that were flagged for removal
-		for (String message : deQMessages) this.messages.remove(message);
+		for (String message : deQMessages) this.inboundMessages.remove(message);
 		
 		return count;
 	}
@@ -243,21 +314,27 @@ public class Client implements Disposable {
 			
 			switch (cmd.getType()) {
 			case LOGIN:
+				if (this.gameWorld == null || this.user == null) break;
+				
 				LoginCommand logincmd = (LoginCommand)cmd;
-				if (this.user != null && !this.user.getUsername().equals(logincmd.getUsername())) {
+				if (!this.user.getUsername().equals(logincmd.getUsername())) {
 					//Add new UserEntity to GameWorld
 					this.gameWorld.addUserEntity(logincmd.getUsername());
 				}
+				
 				break;
 			case LOGOUT:
-				//TODO: Similar to \login, we don't want to cause problems for the user to sent the request
+				if (this.gameWorld == null || this.user == null) break;
+				
 				LogoutCommand logoutcmd = (LogoutCommand)cmd;
-				if (this.user != null && !this.user.getUsername().equals(logoutcmd.getUsername())) {
+				if (!this.user.getUsername().equals(logoutcmd.getUsername())) {
 					//Remove UserEntity from GameWorld
 					this.gameWorld.removeUserEntity(logoutcmd.getUsername());
 				}
 				break;
 			case MOVE:
+				if (this.gameWorld == null) break;
+				
 				MoveCommand movecmd = (MoveCommand)cmd;
 				this.gameWorld.updateUserEntity(movecmd.getName(), movecmd.getMoveVector(), movecmd.getFacing(), movecmd.getDeltaTime());
 				break;
@@ -271,8 +348,14 @@ public class Client implements Disposable {
 	}
 	
 	private void displayMessages() {
-		for (String message : this.messages) Debug.log(message);
-		this.messages.clear();
+		for (String message : this.inboundMessages) {
+			Debug.log(message);
+			if (this.chatWidget == null) break;
+			
+			this.chatWidget.logText(message);
+		}
+		
+		this.inboundMessages.clear();
 	}
 	
 	//Write ArrayList<String> contents to Socket's OutputStream

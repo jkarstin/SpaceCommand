@@ -1,6 +1,8 @@
 package ph.games.scg.screen;
 
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
@@ -15,17 +17,67 @@ public class MainMenuScreen extends BaseScreen {
 	private TextButton loginButton;
 	
 	private void processLogin() {
+		this.stage.setKeyboardFocus(null);
 		Core.client.login(this.usernameField.getText(), this.passwordField.getText());
+		Core.setActiveScreen(new GameScreen());
 	}
 	
 	@Override
 	protected void initialize() {
 		this.usernameField = new TextField("", Assets.skin);
 		this.usernameField.setMessageText("Username");
+		this.usernameField.addListener(new ClickListener() {
+			
+			@Override
+			public void clicked(InputEvent event, float x, float y) {
+				stage.setKeyboardFocus(usernameField);
+			}
+			
+		});
+		this.usernameField.addListener(new InputListener() {
+			
+			@Override
+			public boolean keyDown(InputEvent event, int keycode) {
+				switch (keycode) {
+				case Input.Keys.ENTER:
+					stage.setKeyboardFocus(passwordField);
+					return true;
+				default:
+					return false;
+				}
+			}
+			
+		});
+		this.table.add(this.usernameField);
+		
 		this.passwordField = new TextField("", Assets.skin);
 		this.passwordField.setMessageText("Password");
 		this.passwordField.setPasswordMode(true);
 		this.passwordField.setPasswordCharacter('*');
+		this.passwordField.addListener(new ClickListener() {
+			
+			@Override
+			public void clicked(InputEvent event, float x, float y) {
+				stage.setKeyboardFocus(passwordField);
+			}
+			
+		});
+		this.passwordField.addListener(new InputListener() {
+			
+			@Override
+			public boolean keyDown(InputEvent event, int keycode) {
+				switch (keycode) {
+				case Input.Keys.ENTER:
+					processLogin();
+					return true;
+				default:
+					return false;
+				}
+			}
+			
+		});
+		this.table.add(this.passwordField);
+		
 		this.loginButton = new TextButton("LOGIN", Assets.skin);
 		this.loginButton.addListener(new ClickListener() {
 			
@@ -35,6 +87,7 @@ public class MainMenuScreen extends BaseScreen {
 			}
 			
 		});
+		this.table.add(this.loginButton);
 	}
 	
 	@Override
