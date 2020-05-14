@@ -5,7 +5,6 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import ph.games.scg.game.Core;
-import ph.games.scg.server.Client;
 
 public class GameUI {
 
@@ -18,14 +17,14 @@ public class GameUI {
 	private CrosshairWidget crosshairWidget;
 	public GameOverWidget gameOverWidget;
 
-	public GameUI(Client client) {
+	public GameUI() {
 		this.stage = new Stage(new FitViewport(Core.VIRTUAL_WIDTH, Core.VIRTUAL_HEIGHT));
-		this.setWidgets(client);
+		this.setWidgets();
 		this.configureWidgets();
 	}
 
-	public void setWidgets(Client client) {
-		this.chatWidget = new ChatWidget(this, client);
+	public void setWidgets() {
+		this.chatWidget = new ChatWidget(this);
 		this.pauseWidget = new PauseWidget(this.stage);
 		this.inputWidget = new InputWidget(this.pauseWidget, this.chatWidget);
 		this.gameOverWidget = new GameOverWidget(this.stage);

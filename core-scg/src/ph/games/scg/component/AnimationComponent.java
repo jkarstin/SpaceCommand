@@ -14,13 +14,11 @@ public class AnimationComponent implements Component {
    }
    
    public void animate(final String id, final int loops, final float speed) {
-      //AC.animate(String, int, float, AC.AnimationListener, float)
       this.animationController.animate(id, loops, speed, null, 0f);
    }
    
    public void animate(String id, float offset, float duration, int loops, float speed) {
       this.animationController.animate(id, offset, duration, loops, speed, null, 0f);
-      //USE TO CALCULATE ANIMATION TIMING LATER: System.out.println(this.animationController.current.animation.duration);
    }
    
    public void update(float dt) {

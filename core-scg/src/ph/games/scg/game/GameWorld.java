@@ -17,11 +17,12 @@ import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.UserEntityComponent;
 import ph.games.scg.environment.Room;
 import ph.games.scg.environment.Room.Quad;
-import ph.games.scg.server.Client;
 import ph.games.scg.server.User;
 import ph.games.scg.system.BulletSystem;
+import ph.games.scg.system.EnemySystem;
 import ph.games.scg.system.PlayerSystem;
 import ph.games.scg.system.RenderSystem;
+import ph.games.scg.system.StatusSystem;
 import ph.games.scg.system.UserEntitySystem;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Debug;
@@ -35,25 +36,26 @@ public class GameWorld {
 	private Engine engine;
 	private Entity character;
 	private GameUI gameUI;
-	private Client client;
-	private UserEntitySystem userEntitySystem;
+//	private UserEntitySystem userEntitySystem;
 	private PlayerSystem playerSystem;
+//	private EnemySystem enemySystem;
+//	private StatusSystem statusSystem;
 	private RenderSystem renderSystem;
 	
 	private ArrayList<UserEntity> userEntities;
 
-	public GameWorld(GameUI gameUI, Client client) {
+	public GameWorld(GameUI gameUI) {
 		Bullet.init(); //Load in Bullet.dll
 
 		setDebug();
 
-		initWorld(gameUI, client);
+		initWorld(gameUI);
 		
 		this.userEntities = new ArrayList<UserEntity>();
 		
 		addSystems();
 		
-		//loadRooms();
+		loadRooms();
 		
 		addEntities();
 	}
@@ -69,18 +71,20 @@ public class GameWorld {
 		}
 	}
 
-	private void initWorld(GameUI gameUI, Client client) {
+	private void initWorld(GameUI gameUI) {
 		this.engine = new Engine();
 		this.gameUI = gameUI;
-		this.client = client;
-		this.client.setGameWorld(this);
 	}
 
 	private void addSystems() {
 		this.engine.addSystem(this.renderSystem = new RenderSystem());
 		this.engine.addSystem(this.bulletSystem = new BulletSystem());
-		this.engine.addSystem(this.userEntitySystem = new UserEntitySystem());
-		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI, this.client));
+		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI));
+		
+		this.engine.addSystem(/* this.userEntitySystem = */ new UserEntitySystem());
+		this.engine.addSystem(/* this.enemySystem = */ new EnemySystem(this.bulletSystem));
+		this.engine.addSystem(/* this.statusSystem = */ new StatusSystem(this));
+		
 		if (Debug.isOn()) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
 	}
 	
@@ -186,10 +190,10 @@ public class GameWorld {
 		this.engine.addEntity(this.character);
 	}
 	
-	private void createSpaceship(float x, float y, float z) {
-		Entity spaceshipEntity = EntityFactory.createSpaceship("spaceship.g3dj", this.bulletSystem, x, y, z);
-		this.engine.addEntity(spaceshipEntity);
-	}
+//	private void createSpaceship(float x, float y, float z) {
+//		Entity spaceshipEntity = EntityFactory.createSpaceship("spaceship.g3dj", this.bulletSystem, x, y, z);
+//		this.engine.addEntity(spaceshipEntity);
+//	}
 	
 	public void dispose() {
 		disposeCharacter();
@@ -264,7 +268,7 @@ public class GameWorld {
 			else {
 				Debug.log("Queueing movement data... " + moveVector + "," + facing + "," + deltaTime);
 				uec.queuedMovement.add(moveVector);
-				uec.queuedRotation.add(facing);
+				uec.queuedFacing.add(facing);
 				uec.queuedDeltaTime.add(deltaTime);
 			}
 		}

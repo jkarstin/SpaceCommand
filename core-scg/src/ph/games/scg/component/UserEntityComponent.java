@@ -8,12 +8,12 @@ import com.badlogic.gdx.math.Vector3;
 public class UserEntityComponent implements Component {
 
 	public ArrayList<Vector3> queuedMovement;
-	public ArrayList<Float> queuedRotation;
+	public ArrayList<Float> queuedFacing;
 	public ArrayList<Float> queuedDeltaTime;
 	
 	public UserEntityComponent() {
 		this.queuedMovement = new ArrayList<Vector3>();
-		this.queuedRotation = new ArrayList<Float>();
+		this.queuedFacing = new ArrayList<Float>();
 		this.queuedDeltaTime = new ArrayList<Float>();
 	}
 

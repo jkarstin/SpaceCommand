@@ -6,6 +6,8 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 
 import ph.games.scg.screen.GameScreen;
+import ph.games.scg.server.Client;
+import ph.games.scg.server.Server;
 import ph.games.scg.util.Assets;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.Debug.DEBUG_MODE;
@@ -17,6 +19,7 @@ public class Core extends Game {
 	public static final float VIRTUAL_HEIGHT = 600f;
 	
 	public static Core core;
+	public static Client client;
 	
 	public static void setActiveScreen(Screen screen) {
 		//If current screen exists, hide and dispose it
@@ -36,13 +39,14 @@ public class Core extends Game {
 	}
 	
 	public Core() {
-		Core.core = this;
+		Core.core = this;;
 	}
 	
 	@Override
 	public void create () {
 		Debug.setMode(DEBUG_MODE.ON);
 		
+		Core.client = new Client(Server.SERVER_IP, Server.SERVER_PORT);
 		new Assets();
 		Settings.load();
 		Core.setActiveScreen(new GameScreen());
@@ -57,6 +61,7 @@ public class Core extends Game {
 	
 	@Override
 	public void dispose () {
+		Core.client.dispose();
 		Settings.save();
 		Assets.dispose();
 	}

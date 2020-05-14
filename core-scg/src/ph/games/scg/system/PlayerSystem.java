@@ -14,10 +14,12 @@ import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.physics.bullet.collision.ClosestRayResultCallback;
 
 import ph.games.scg.component.CharacterComponent;
+import ph.games.scg.component.EnemyComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.PlayerComponent;
-import ph.games.scg.server.Client;
+import ph.games.scg.game.Core;
 import ph.games.scg.ui.GameUI;
+import ph.games.scg.util.Debug;
 import ph.games.scg.util.Settings;
 
 public class PlayerSystem extends EntitySystem implements EntityListener {
@@ -33,18 +35,16 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 	private ClosestRayResultCallback rayTestCB;
 	private Entity player;
 	private GameUI gameUI;
-	private Client client;
 	private ModelComponent modelComponent;
 	private PlayerComponent playerComponent;
 
 	public Entity gun;
 
-	public PlayerSystem(Camera camera, BulletSystem bulletSystem, GameUI gameUI, Client client) {
+	public PlayerSystem(Camera camera, BulletSystem bulletSystem, GameUI gameUI) {
 		this.camera = camera;
 		this.bulletSystem = bulletSystem;
 		this.rayTestCB = new ClosestRayResultCallback(Vector3.Zero, Vector3.Z);
 		this.gameUI = gameUI;
-		this.client = client;
 	}
 
 	@Override
@@ -115,7 +115,7 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 
 		movement.scl(10f * dt);
 		
-		if (recordMovement) this.client.move(movement, rotation, dt);
+		if (recordMovement) Core.client.move(movement, rotation, dt);
 
 		this.characterComponent.walkDirection.add(movement);
 		this.camera.rotate(this.camera.up, rotation);
@@ -138,9 +138,11 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 	}
 
 	private void fire() {
+		final float reach = 50f;
+		
 		Ray ray = this.camera.getPickRay(Gdx.graphics.getWidth()/2f, Gdx.graphics.getHeight()/2f);
 		rayFrom.set(ray.origin);
-		rayTo.set(ray.direction).scl(50f).add(rayFrom);
+		rayTo.set(ray.direction).scl(reach).add(rayFrom);
 		//Because we reuse the ClosestRayResultCallback, we need to reset its values
 		this.rayTestCB.setCollisionObject(null);
 		this.rayTestCB.setClosestHitFraction(1f);
@@ -148,8 +150,14 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		this.rayTestCB.setRayToWorld(rayTo);
 		this.bulletSystem.collisionWorld.rayTest(rayFrom, rayTo, rayTestCB);
 		if (rayTestCB.hasHit()) {
-			//         final Entity e = (Entity)(rayTestCB.getCollisionObject().userData);
-			//TODO: Do stuff with Entity e
+			final Entity hitEntity = (Entity)(rayTestCB.getCollisionObject().userData);
+			
+			EnemyComponent ecomp;
+			if ((ecomp = hitEntity.getComponent(EnemyComponent.class)) != null) {
+				//We hit an enemy, boys!
+				Debug.log("Enemy entity hit: " + ecomp.toString());
+			}
+			
 		}
 	}
 

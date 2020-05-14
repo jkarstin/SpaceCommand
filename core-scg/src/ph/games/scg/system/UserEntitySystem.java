@@ -43,8 +43,7 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			//Get rotation
 			Quaternion quat = new Quaternion();
 			mc.instance.transform.getRotation(quat);
-			float facing = quat.getAngleAround(Vector3.Y);
-			float deltaRotation = 0f;
+			float currentFacing = quat.getAngleAround(Vector3.Y);
 			
 			Vector3 translationVector = new Vector3();
 			
@@ -52,71 +51,44 @@ public class UserEntitySystem extends EntitySystem implements EntityListener {
 			while (this.dtRemaining > 0f && uec.queuedDeltaTime.size() > 0) {
 
 				float queuedDeltaTime = uec.queuedDeltaTime.remove(0);
-				float queuedRotation = uec.queuedRotation.remove(0);
+				float queuedFacing = uec.queuedFacing.remove(0);
 				Vector3 queuedMovement = uec.queuedMovement.remove(0);
 
-				Debug.logv("Queued movement data: " + queuedMovement + "," + queuedRotation + "," + queuedDeltaTime);
+				Debug.logv("Queued movement data: " + queuedMovement + "," + queuedFacing + "," + queuedDeltaTime);
 
 				cc.characterDirection.set(0f, 0f, 0f);
 				
 				//If full movement can be applied, apply
 				if (this.dtRemaining >= queuedDeltaTime) {
 					translationVector.add(queuedMovement);
-					facing = queuedRotation;
+					currentFacing = queuedFacing;
 					this.dtRemaining -= queuedDeltaTime;
 				}
 				//If full movement cannot be applied, calculate percentage and move by that much; re-queue remaining amount
 				else {
 					float percentage = this.dtRemaining/queuedDeltaTime;
-					float queuedRotationPortion = (queuedRotation-facing)*percentage;
+					float queuedFacingPortion = (queuedFacing - currentFacing)*percentage;
 					Vector3 queuedMovementPortion = queuedMovement.cpy();
 					queuedMovementPortion.scl(percentage);
 
 					uec.queuedDeltaTime.add(0, queuedDeltaTime*(1f-percentage));
-					uec.queuedRotation.add(0, queuedRotation*(1f-percentage));
+					uec.queuedFacing.add(0, queuedFacing);
 					uec.queuedMovement.add(0, queuedMovement.scl(1f-percentage));
 
 					translationVector.add(queuedMovementPortion);
-					facing += queuedRotationPortion;
+					currentFacing += queuedFacingPortion;
 					this.dtRemaining = 0f;
 				}
 			}
 			
-			//Apply translation
+			//Apply translation and rotation
 			position.add(translationVector);
-			mc.instance.transform.setTranslation(position);
-			//Apply rotation
-//			mc.instance.transform.rotate(Vector3.Y, degrees);
+			quat.setFromAxis(Vector3.Y, currentFacing);
+			mc.instance.transform.set(position.x, position.y, position.z, quat.x, quat.y, quat.z, quat.w);
 			
 			cc.walkDirection.set(0f, 0f, 0f);
 			cc.walkDirection.add(translationVector);
 			cc.characterController.setWalkDirection(cc.walkDirection);
-			
-			
-			
-			
-			
-			
-			
-//			Vector3 movement = new Vector3();
-//
-
-//
-//			float theta = (float)(Math.atan2(movement.x, movement.z));
-//
-//			//Calculate the rotation
-//			Quaternion rot = quat.setFromAxis(0f, 1f, 0f, (float)Math.toDegrees(theta) + 90f);
-//			//Walk
-//			Matrix4 ghost = new Matrix4();
-//			Vector3 translation = new Vector3();
-//			cc.ghostObject.getWorldTransform(ghost);
-//			ghost.getTranslation(translation);
-//			mc.instance.transform.set(translation.x, translation.y, translation.z, rot.x, rot.y, rot.z, rot.w);
-//			cc.characterDirection.set(-1f, 0f, 0f).rotate(Vector3.Y, theta);//.rot(mc.instance.transform);
-//			cc.walkDirection.set(0f, 0f, 0f);
-//			cc.walkDirection.add(cc.characterDirection);
-//			cc.walkDirection.scl(movement.len());
-//			cc.characterController.setWalkDirection(cc.walkDirection);
 		}
 	}
 

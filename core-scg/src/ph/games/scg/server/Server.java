@@ -528,20 +528,20 @@ public class Server implements ILoggable {
 	}
 	
 	//Write ArrayList<String> contents to Socket's OutputStream
-	private void write(Socket sock, ArrayList<String> messages) {
-		if (sock != null) try {
-			OutputStream ostream = sock.getOutputStream();
-			for (String message : messages) {
-				message += "\n";
-				byte[] buff = message.getBytes();
-				ostream.write(buff);
-			}
-		} catch (IOException e) {
-			Debug.warn("Unable to write to Socket. Removing UserSock record... " + sock);
-			for (UserSock usersock : this.usersocks) if (usersock.getSock() == sock) this.usersocks.remove(usersock);
-			e.printStackTrace();
-		}
-	}
+//	private void write(Socket sock, ArrayList<String> messages) {
+//		if (sock != null) try {
+//			OutputStream ostream = sock.getOutputStream();
+//			for (String message : messages) {
+//				message += "\n";
+//				byte[] buff = message.getBytes();
+//				ostream.write(buff);
+//			}
+//		} catch (IOException e) {
+//			Debug.warn("Unable to write to Socket. Removing UserSock record... " + sock);
+//			for (UserSock usersock : this.usersocks) if (usersock.getSock() == sock) this.usersocks.remove(usersock);
+//			e.printStackTrace();
+//		}
+//	}
 	
 	//Write String to Socket's OutputStream
 	private void write(Socket sock, String message) {

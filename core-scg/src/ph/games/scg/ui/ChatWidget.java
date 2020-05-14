@@ -24,7 +24,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 
-import ph.games.scg.server.Client;
+import ph.games.scg.game.Core;
 import ph.games.scg.util.Assets;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.Settings;
@@ -41,14 +41,11 @@ public class ChatWidget extends Actor {
 	
 	private String[] chatLog;
 	private int logLines;
-
-	private Client client;
 	
-	public ChatWidget(GameUI gameUI, Client client) {
+	public ChatWidget(GameUI gameUI) {
 		this.chatLog = new String[LOG_MAX_SIZE];
 		this.logLines = 0;
 		this.gameUI = gameUI;
-		this.client = client;
 		setWidgets();
 		configureWidgets();
 		setListeners();
@@ -126,7 +123,7 @@ public class ChatWidget extends Actor {
 	
 	public void logText(String str) {
 		Debug.log(str);
-		this.client.queueMessage(str);
+		Core.client.queueMessage(str);
 		if (this.logLines == LOG_MAX_SIZE) {
 			for (int l=0; l < LOG_MAX_SIZE-1; l++) {
 				this.chatLog[l] = this.chatLog[l+1];

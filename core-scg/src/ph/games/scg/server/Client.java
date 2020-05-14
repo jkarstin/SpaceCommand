@@ -90,14 +90,14 @@ public class Client implements Disposable {
 		else this.outboundMessages.add(message);
 	}
 	
-	private void login(String username, String password) {
+	public void login(String username, String password) {
 		if (!this.isOpen()) return;
 		
 		this.user = new User(username, password);
 		this.outgoingCommands.add(new LoginCommand(username, password));
 	}
 	
-	private void logout() {
+	public void logout() {
 		if (!this.isOpen()) return;
 		
 		this.user = null;
