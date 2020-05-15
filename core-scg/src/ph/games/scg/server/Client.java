@@ -109,6 +109,10 @@ public class Client implements Disposable {
 		this.outboundCommands.add(new AttackCommand(this.sock, this.user.getName(), target));
 	}
 	
+	public void spawnEnemy(String name) {
+		if (!this.isOpen() || this.user == null) return;
+	}
+	
 	//Open a new Socket at specified address and port
 	private void open(String hostaddress, int port) {
 		try {
@@ -416,12 +420,7 @@ public class Client implements Disposable {
 			case DAMAGE:
 				DamageCommand damagecmd = (DamageCommand)command;
 				
-				NetEntity deadNentity = this.NES.applyDamage(damagecmd.getName(), damagecmd.getTarget(), damagecmd.getAmount());
-				
-				if (deadNentity == null) break;
-				
-				//We have a dead nentity on our hands...
-				
+				this.NES.applyDamage(damagecmd.getName(), damagecmd.getTarget(), damagecmd.getAmount());				
 				
 				break;
 				

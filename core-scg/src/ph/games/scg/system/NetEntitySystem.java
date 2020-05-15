@@ -21,10 +21,6 @@ import ph.games.scg.util.EntityFactory;
 
 public class NetEntitySystem extends EntitySystem implements EntityListener {
 	
-//	ImmutableArray<Entity> entities;
-	
-	ImmutableArray<Entity> enemyEntities;
-	ImmutableArray<Entity> userEntities;
 	ImmutableArray<Entity> nentities;
 	
 	private BulletSystem bulletSystem;
@@ -37,12 +33,33 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		this.bulletSystem = bulletSystem;
 	}
 	
-	public NetEntity applyDamage(String attacker, String attackee, float amount) {
-		return null;
+	public void applyDamage(String attacker, String attackee, float amount) {
+		Entity attackerNentity=null, attackeeNentity=null;
+		NetEntityComponent necomp=null;
+		for (Entity nentity : this.nentities) {
+			necomp = nentity.getComponent(NetEntityComponent.class);
+			if (necomp.netEntity.getName().equals(attacker)) attackerNentity = nentity;
+			if (necomp.netEntity.getName().equals(attackee)) attackeeNentity = nentity;
+		}
+		
+		if (attackerNentity == null || attackeeNentity == null) {
+			Debug.warn("Failed to apply damage. Attacker or attackee NetEntity could not be found: [attacker=" + attacker + " attackee=" + attackee + "]");
+			return;
+		}
+		
+		//See if attackee has an EnemyComponent
+		EnemyComponent ecomp = attackeeNentity.getComponent(EnemyComponent.class);
+		if (ecomp != null) {
+			//Set the target to the attacker
+			ecomp.target = attackerNentity;
+		}
+		
+		//Apply damage
+		attackeeNentity.getComponent(NetEntityComponent.class).netEntity.applyDamage(amount);
 	}
 	
 	public void spawnNetEntity(String name, Vector3 position) {
-		Entity nentity = EntityFactory.createNetEntity(this.bulletSystem, name, position.x, position.y, position.z);
+		Entity nentity = EntityFactory.createUserEntity(this.bulletSystem, name, position.x, position.y, position.z);
 		this.engine.addEntity(nentity);
 	}
 	
@@ -53,7 +70,7 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		boolean match = false;
 		for (Entity nentity : this.nentities) {
 			necomp = nentity.getComponent(NetEntityComponent.class);
-			if (necomp.netName.equals(name)) {
+			if (necomp.netEntity.getName().equals(name)) {
 				match = true;
 				break;
 			}
@@ -75,7 +92,7 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 	public void killNetEntity(String name) {
 		for (Entity nentity : this.nentities) {
 			NetEntityComponent necomp = nentity.getComponent(NetEntityComponent.class);
-			if (necomp.netName.equals(name)) {
+			if (necomp.netEntity.getName().equals(name)) {
 				this.engine.removeEntity(nentity);
 				this.bulletSystem.removeBody(nentity);
 				return;
@@ -154,8 +171,6 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 	
 	@Override
 	public void addedToEngine(Engine engine) {
-		this.enemyEntities = engine.getEntitiesFor(Family.all(NetEntityComponent.class, EnemyComponent.class).get());
-		this.userEntities = engine.getEntitiesFor(Family.all(NetEntityComponent.class, UserComponent.class).get());
 		this.nentities = engine.getEntitiesFor(Family.all(NetEntityComponent.class).get());
 		this.engine = engine;
 	}

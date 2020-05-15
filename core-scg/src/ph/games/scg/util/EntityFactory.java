@@ -39,8 +39,9 @@ import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.NetEntityComponent;
 import ph.games.scg.component.PlayerComponent;
 import ph.games.scg.component.StatusComponent;
-import ph.games.scg.component.UserComponent;
 import ph.games.scg.environment.Room.Quad;
+import ph.games.scg.server.Enemy;
+import ph.games.scg.server.User;
 import ph.games.scg.system.BulletSystem;
 
 public class EntityFactory {
@@ -279,7 +280,7 @@ public class EntityFactory {
 		entity.add(new StatusComponent(animationComponent));
 		
 		NetEntityComponent necomp = new NetEntityComponent();
-		necomp.netName = name;
+		necomp.netEntity = new Enemy(name);
 		entity.add(necomp);
 
 		return entity;
@@ -327,10 +328,10 @@ public class EntityFactory {
 //		return entity;
 //	}
 
-	public static Entity createNetEntity(BulletSystem bulletSystem, String name, float x, float y, float z) {
+	public static Entity createUserEntity(BulletSystem bulletSystem, String name, float x, float y, float z) {
 		Entity entity = EntityFactory.createCharacter(bulletSystem, x, y, z);
 		NetEntityComponent necomp = new NetEntityComponent();
-		necomp.netName = name;
+		necomp.netEntity = new User(name);
 		entity.add(necomp);
 		return entity;
 	}

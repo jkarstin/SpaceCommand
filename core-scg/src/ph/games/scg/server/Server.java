@@ -43,7 +43,7 @@ public class Server implements ILoggable {
 	private static final float SEND_FREQUENCY = 2.4f;
 	
 	private static final int BYTE_BUFFER_SIZE = 64;
-	private static final int VERSION_LO = 4;
+	private static final int VERSION_LO = 5;
 	private static final int VERSION_HI = 0;
 	
 	private ServerUI serverUI;
@@ -938,14 +938,16 @@ public class Server implements ILoggable {
 					
 					float damage = attacker.getStrength();
 					
-					this.commandQ.add(new DamageCommand(null, attacker.getName(), attackee.getName(), damage));
+					//Broadcast new \damage command to clients to update
+					this.broadcastQ.add(new UserMessage((new DamageCommand(null, attacker.getName(), attackee.getName(), damage).toCommandString())));
 					
 					break;
 					
 				case DAMAGE:
 					DamageCommand damagecmd = (DamageCommand)command;
 					
-					
+					//Broadcast \damage command to clients
+					this.broadcastQ.add(new UserMessage(damagecmd.toCommandString()));
 					
 					break;
 					

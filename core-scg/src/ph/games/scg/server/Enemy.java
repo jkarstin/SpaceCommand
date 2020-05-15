@@ -4,8 +4,8 @@ import com.badlogic.gdx.math.Vector3;
 
 public class Enemy extends NetEntity {
 
-	public Enemy() {
-		super(NET_TYP.ENEMY);
+	public Enemy(String name) {
+		super(NET_TYP.ENEMY, name);
 	}
 	
 	@Override

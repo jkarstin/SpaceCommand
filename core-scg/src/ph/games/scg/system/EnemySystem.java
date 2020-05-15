@@ -47,44 +47,42 @@ public class EnemySystem extends EntitySystem implements EntityListener {
 	@Override
 	public void update(float dt) {
 		if (this.entities.size() < 1) {
-			Random random = new Random();
-			this.engine.addEntity(
-					EntityFactory.createEnemy(
-							this.bulletSystem,
-							"enemy_" + ENEMY_COUNTER++,
-							random.nextInt(40) - 20,
-							16,
-							random.nextInt(40) - 20
-							)
-					);
+			//Request new enemy spawn
+			GameCore.client.spawnEnemy("enemy_" + ENEMY_COUNTER++);
+			return;
+			
+			
+//			Random random = new Random();
+//			this.engine.addEntity(
+//					EntityFactory.createEnemy(
+//							this.bulletSystem,
+//							"enemy_" + ENEMY_COUNTER++,
+//							random.nextInt(40) - 20,
+//							16,
+//							random.nextInt(40) - 20
+//							)
+//					);
 		}
 
+		EnemyComponent ecomp=null;
 		for (Entity e : this.entities) {
-			ModelComponent mod = e.getComponent(ModelComponent.class);
-			ModelComponent playerModel = this.player.getComponent(ModelComponent.class);
+			ecomp = e.getComponent(EnemyComponent.class);
+			if (ecomp.target == null) continue;
+			
+			ModelComponent mcomp = e.getComponent(ModelComponent.class);
+			ModelComponent tgtmcomp = ecomp.target.getComponent(ModelComponent.class);
 			NetEntityComponent necomp = e.getComponent(NetEntityComponent.class);
-			Vector3 playerPosition = new Vector3();
+			Vector3 targetPosition = new Vector3();
 			Vector3 enemyPosition = new Vector3();
-			playerModel.instance.transform.getTranslation(playerPosition);
-			mod.instance.transform.getTranslation(enemyPosition);
-			float dX = playerPosition.x - enemyPosition.x;
-			float dZ = playerPosition.z - enemyPosition.z;
+			tgtmcomp.instance.transform.getTranslation(targetPosition);
+			mcomp.instance.transform.getTranslation(enemyPosition);
+			float dX = targetPosition.x - enemyPosition.x;
+			float dZ = targetPosition.z - enemyPosition.z;
 			float theta = (float)Math.toDegrees(Math.atan2(dX, dZ));
 			Vector3 movement = new Vector3(0f, 0f, 1f);
 			movement.rotate(Vector3.Y, theta).scl(3f * dt);
-//			//Walk
-//			Matrix4 ghost = new Matrix4();
-//			Vector3 translation = new Vector3();
-//			cm.get(e).ghostObject.getWorldTransform(ghost);
-//			ghost.getTranslation(translation);
-//			mod.instance.transform.set(translation.x, translation.y, translation.z, rot.x, rot.y, rot.z, rot.w);
-//			cm.get(e).characterDirection.set(0f, 0f, 1f).rot(mod.instance.transform);
-//			cm.get(e).walkDirection.set(0f, 0f, 0f);
-//			cm.get(e).walkDirection.add(cm.get(e).characterDirection);
-//			cm.get(e).walkDirection.scl(3f * dt);
-//			cm.get(e).characterController.setWalkDirection(cm.get(e).walkDirection);
 			
-			GameCore.client.move(necomp.netName, movement, theta, dt);
+			GameCore.client.move(necomp.netEntity.getName(), movement, theta, dt);
 		}
 	}
 

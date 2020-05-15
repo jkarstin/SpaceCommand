@@ -1,6 +1,7 @@
 package ph.games.scg.component;
 
 import com.badlogic.ashley.core.Component;
+import com.badlogic.ashley.core.Entity;
 
 public class EnemyComponent implements Component {
    
@@ -10,6 +11,7 @@ public class EnemyComponent implements Component {
    }
    
    public STATE state;
+   public Entity target;
    
    public EnemyComponent(STATE state) {
       this.state = state;

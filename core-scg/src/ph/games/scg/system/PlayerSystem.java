@@ -166,9 +166,9 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 			NetEntityComponent nec = hitEntity.getComponent(NetEntityComponent.class);
 			if (nec != null) {
 				//We hit one, boys!
-				Debug.log("NetEntity hit: " + nec.netName);
+				Debug.log("NetEntity hit: " + nec.netEntity.getName());
 				
-				GameCore.client.attack(nec.netName);
+				GameCore.client.attack(nec.netEntity.getName());
 //		             scomp.setAlive(false);
 //		             PlayerComponent.score += 100;
 			}

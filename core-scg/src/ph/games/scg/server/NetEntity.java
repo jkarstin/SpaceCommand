@@ -20,8 +20,9 @@ public abstract class NetEntity implements ILoggable {
 	protected float strength;
 	protected Vector3 position;
 	
-	public NetEntity(NET_TYP type) {
+	public NetEntity(NET_TYP type, String name) {
 		this.type = type;
+		this.name = name;
 		
 		this.NET_ID = ID_TAG++;
 		

@@ -7,9 +7,8 @@ public class User extends NetEntity {
 	private String password;
 	
 	public User(String username, String password) {
-		super(NET_TYP.USER);
+		super(NET_TYP.USER, username);
 		
-		this.name = username;
 		this.password = password;
 	}
 	public User(String username) { this(username, null); }
