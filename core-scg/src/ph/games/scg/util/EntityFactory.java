@@ -81,17 +81,8 @@ public class EntityFactory {
 		Vector3 tl = quad.getTopLeft();
 		Vector3 nml = quad.getNormal();
 		Vector3 ctr = quad.getCenter();
-
-		
-		
-		//Make rectangle where the corners are in the order that draws the texture the correct way
-		
-		
 		
 		Model quadModel = modelBuilder.createRect(
-
-				//TODO: Close, but is having issues keeping the texture inside the collider when drawn facing the opposite direction as an orientation that works.
-				//		Might have to do with the values being passed to createStaticEntity
 				
 				bl.x, bl.y, bl.z, //texture bottom left
 				br.x, br.y, br.z, //texture bottom right
@@ -201,6 +192,7 @@ public class EntityFactory {
 		
 		NetEntityComponent necomp = new NetEntityComponent();
 		necomp.netEntity = GameCore.client.getUser();
+		
 		entity.add(necomp);
 		
 		return entity;

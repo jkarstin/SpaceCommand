@@ -37,13 +37,13 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		NetEntityComponent necomp=null;
 		for (Entity nentity : this.nentities) {
 			necomp = nentity.getComponent(NetEntityComponent.class);
+//			Debug.log("NetEntity: " + necomp.netEntity);
 			if (necomp.netEntity.getName().equals(attacker)) attackerNentity = nentity;
 			if (necomp.netEntity.getName().equals(attackee)) attackeeNentity = nentity;
 		}
 		
-		//TODO: Make this less patchwork. There has to be a better way to go about this
 		if (attackerNentity == null || attackeeNentity == null) {
-			Debug.warn("Failed to apply damage. Attacker or attackee NetEntity could not be found: [attacker=" + attacker + " attackee=" + attackee + "]");
+			Debug.warn("Failed to apply damage. Attacker or attackee NetEntity could not be found: [attacker=" + attacker + " attackee=" + attackee + " attackerNentity=" + attackerNentity + " attackeeNentity=" + attackeeNentity + "]");
 			return;
 		}
 		

@@ -65,7 +65,7 @@ public class EnemySystem extends EntitySystem implements EntityListener {
 			
 			GameCore.client.move(necomp.netEntity.getName(), movement, theta, dt);
 			
-			//TODO: Almost works. Can't seem to locate player as attackee, I think
+			//TODO: Works, but happens too fast. Rapidly reduces NetEntity health to zero, and is currently not entirely connected to Player, so once zero health is reached, player control freezes
 //			if (distance.len() <= ecomp.reach) GameCore.client.attack(necomp.netEntity.getName(), ecomp.target.getComponent(NetEntityComponent.class).netEntity.getName());
 		}
 	}
