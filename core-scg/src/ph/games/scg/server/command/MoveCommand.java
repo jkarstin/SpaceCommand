@@ -67,7 +67,7 @@ public class MoveCommand extends Command {
 	
 	@Override
 	public String toString() {
-		String str = super.toString() + "_MOVE{name=" + this.name;
+		String str = super.toString() + "{name=" + this.name;
 		str += " moveVector=" + this.moveVector.toString();
 		str += " facing=" + this.facing;
 		str += " dt=" + this.dt;

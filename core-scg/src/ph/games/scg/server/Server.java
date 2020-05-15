@@ -20,11 +20,16 @@ import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
+import com.badlogic.gdx.math.Vector3;
+
 import ph.games.scg.server.command.Command;
+import ph.games.scg.server.command.KillCommand;
 import ph.games.scg.server.command.LoginCommand;
 import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
+import ph.games.scg.server.command.RollCallCommand;
 import ph.games.scg.server.command.SayCommand;
+import ph.games.scg.server.command.SpawnCommand;
 import ph.games.scg.server.command.TellCommand;
 import ph.games.scg.server.command.VersionCommand;
 import ph.games.scg.util.Debug;
@@ -38,10 +43,11 @@ public class Server implements ILoggable {
 	
 	public static final String SERVER_IP = "192.168.1.2";
 	public static final int SERVER_PORT = 21595;
-	private static final int DEFAULT_SO_TIMEOUT = 50;
+	private static final int SO_TIMEOUT = 50;
+	private static final float ROLL_CALL_PERIOD = 1f;
 	
 	private static final int BYTE_BUFFER_SIZE = 64;
-	private static final int VERSION_LO = 3;
+	private static final int VERSION_LO = 4;
 	private static final int VERSION_HI = 0;
 	
 	private ServerUI serverUI;
@@ -55,6 +61,7 @@ public class Server implements ILoggable {
 	private boolean opened;
 	//Number of seconds since server was opened
 	private float uptime;
+	private float rollCallTimer;
 	//Number of milliseconds the server will attempt to look for clients before stopping
 	private int soTimeout;
 	
@@ -76,15 +83,17 @@ public class Server implements ILoggable {
 	private ArrayList<UserMessage> directMessageQ;
 	//Broadcast Queue
 	private ArrayList<UserMessage> broadcastQ;
+	//Close Queue
+	private ArrayList<UserSock> closeQ;
 	
-	public Server(int port, int timeout, ServerUI serverUI) {
+	public Server(int port, ServerUI serverUI) {
 		this.serverUI = serverUI;
 		
 		this.serverSock = null;
 		this.port = port;
 		this.opened = false;
 		this.uptime = 0f;
-		this.soTimeout = timeout;
+		this.rollCallTimer = 0f;
 		
 		this.buff = new byte[BYTE_BUFFER_SIZE];
 		this.messages = new ArrayList<String>();
@@ -100,13 +109,13 @@ public class Server implements ILoggable {
 		this.commandQ = new ArrayList<Command>();
 		this.directMessageQ = new ArrayList<UserMessage>();
 		this.broadcastQ = new ArrayList<UserMessage>();
+		this.closeQ = new ArrayList<UserSock>();
 	}
-	public Server(int port, ServerUI serverUI) { this(port, DEFAULT_SO_TIMEOUT, serverUI); }
 	
 	public void open() {
 		if (this.serverSock == null) try {
 			this.serverSock = new ServerSocket(this.port);
-			this.serverSock.setSoTimeout(this.soTimeout);
+			this.serverSock.setSoTimeout(SO_TIMEOUT);
 			this.hostname = InetAddress.getLocalHost().getHostName();
 			this.hostaddress = InetAddress.getLocalHost().getHostAddress();
 			this.opened = true;
@@ -124,7 +133,12 @@ public class Server implements ILoggable {
 		if (!this.isOpen()) return;
 		
 		this.uptime += dt;
+		this.rollCallTimer += dt;
 		Debug.logv("Server uptime: " + this.uptime + " s");
+		//Poll clients for roll call
+		this.rollCall();
+		//Close queued UserSocks
+		this.closeUserSocks();
 		//Accept new clients
 		this.acceptClients();
 		//Look for commands from clients
@@ -133,6 +147,37 @@ public class Server implements ILoggable {
 		this.executeCommands();
 		//Broadcast server-wide messages
 		this.sendMessages();
+	}
+	
+	private void rollCall() {
+		if (this.rollCallTimer >= ROLL_CALL_PERIOD) {
+			this.rollCallTimer -= ROLL_CALL_PERIOD;
+			
+			//Logout and close any UserSocks still flagged from last Roll Call
+			for (UserSock usersock : this.usersocks) {
+				if (usersock.getRC()) {
+					Debug.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
+					this.serverUI.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
+					
+					LogoutCommand logoutcmd = new LogoutCommand(usersock.getUser().getUsername());
+					this.commandQ.add(logoutcmd);
+					
+					//Queue socket for closing
+					this.closeQ.add(usersock);
+				}
+			}
+			
+			//Flag remaining UserSocks for next Roll Call
+			final String rc = "\\rc";
+			UserMessage rollCallMessage;
+			
+			//Check to ensure all UserSock objects are still active
+			for (UserSock usersock : this.usersocks) {
+				usersock.setRC(true);
+				rollCallMessage = new UserMessage(null, rc, usersock.getUser());
+				this.write(rollCallMessage);
+			}
+		}
 	}
 	
 	private void acceptClients() {
@@ -206,11 +251,9 @@ public class Server implements ILoggable {
 					socksegment.setSegment(segment);
 					
 					//Log the messages received for debugging purposes
-					this.serverUI.log("Received Messages [" + this.messages.size() + "]:");
 					Debug.log("Received Messages [" + this.messages.size() + "]:");
 					for (String message : this.messages) {
 						Debug.log(message);
-						this.serverUI.log(message);
 					}
 				}
 			}
@@ -218,20 +261,31 @@ public class Server implements ILoggable {
 			
 			//Look for commands if messages were received
 			for (String message : this.messages) {
+
+				//TODO: Revisit this when you have time
+//				Command cmd = Command.parseCommand(message);
+//				
+//				if (cmd != null) this.commandQ.add(cmd);
+				
 				this.stoker = new StringTokenizer(message);
 				String token;
 				
-				String username = "";
+				String name = "";
 				String password = "";
+				float x=0f, y=0f, z=0f;
 				message = "";
 				while ((token = pullToken()) != null) {
 					switch (token) {
 					
+					case "\\rc":
+						name = pullToken();
+						this.commandQ.add(new RollCallCommand(sock, name));
+					
 					case "\\login":
-						username = pullToken();
+						name = pullToken();
 						password = pullToken();
-						if (username == null) Debug.warn("Invalid use of \\login command. Requires username value");
-						else this.commandQ.add(new LoginCommand(sock, username, password));
+						if (name == null) Debug.warn("Invalid use of \\login command. Requires username value");
+						else this.commandQ.add(new LoginCommand(sock, name, password));
 						break;
 						
 					case "\\version":
@@ -250,20 +304,20 @@ public class Server implements ILoggable {
 						break;
 						
 					case "\\tell":
-						username = pullToken();
-						if (username == null) Debug.warn("Invalid use of \\tell command. Requires username value");
+						name = pullToken();
+						if (name == null) Debug.warn("Invalid use of \\tell command. Requires username value");
 						else {
 							//build message from remaining tokens
 							if ((token = pullToken()) != null) message = token;
 							while ((token = pullToken()) != null) message += " " + token;
-							this.commandQ.add(new TellCommand(sock, username, message));
+							//Queue \tell command to target username
+							this.commandQ.add(new TellCommand(sock, name, message));
 						}
 						break;
 						
 					case "\\move":
-						//TODO: Handle command
-						username = pullToken();
-						if (username == null) {
+						name = pullToken();
+						if (name == null) {
 							Debug.warn("Invalid use of \\move command. Requires name value");
 							break;
 						}
@@ -275,13 +329,49 @@ public class Server implements ILoggable {
 						
 						String[] moveData = message.split(",");
 						
-						float x = Float.valueOf(moveData[0]);
-						float y = Float.valueOf(moveData[1]);
-						float z = Float.valueOf(moveData[2]);
+						x = Float.valueOf(moveData[0]);
+						y = Float.valueOf(moveData[1]);
+						z = Float.valueOf(moveData[2]);
 						float theta = Float.valueOf(moveData[3]);
 						float delta = Float.valueOf(moveData[4]);
 						
-						this.commandQ.add(new MoveCommand(sock, username, x, y, z, theta, delta));
+						this.commandQ.add(new MoveCommand(sock, name, x, y, z, theta, delta));
+						
+						break;
+						
+					case "\\spawn":
+						name = pullToken();
+						
+						if (name == null) {
+							Debug.warn("Invalid use of \\spawn command. Requires name value");
+							break;
+						}
+						
+						message = pullToken();
+						if (message == null) {
+							Debug.warn("Invalid use of \\spawn command. Requires movement values");
+							break;
+						}
+						
+						String[] spawnData = message.split(",");
+						
+						x = Float.valueOf(spawnData[0]);
+						y = Float.valueOf(spawnData[1]);
+						z = Float.valueOf(spawnData[2]);
+						
+						this.commandQ.add(new SpawnCommand(sock, name, new Vector3(x, y, z)));
+						
+						break;
+						
+					case "\\kill":
+						name = pullToken();
+						
+						if (name == null) {
+							Debug.warn("Invalid use of \\kill command. Requires name value");
+							break;
+						}
+						
+						this.commandQ.add(new KillCommand(sock, name));
 						
 						break;
 						
@@ -306,6 +396,18 @@ public class Server implements ILoggable {
 		for (Command command : this.commandQ) {
 			this.serverUI.log(command);
 			switch (command.getType()) {
+			
+			case ROLLCALL:
+				RollCallCommand rccmd = (RollCallCommand)command;
+				
+				//Roll call reply recieved, unflag associated UserSock
+				for (UserSock usersock : this.usersocks) {
+					if (usersock.getSock() == rccmd.getSock()) {
+						usersock.setRC(false);
+						break;
+					}
+				}
+				break;
 			
 			case LOGIN:
 				LoginCommand logincmd = (LoginCommand)command;
@@ -335,13 +437,24 @@ public class Server implements ILoggable {
 					this.broadcastQ.add(new UserMessage(message));
 				}
 				
+				//Send direct server message to sender to "login" all currently logged in users
+				for (UserSock usersock : this.usersocks) {
+					//Skip the sending user
+					if (usersock.getSock() == logincmd.getSock()) continue;
+					
+					String message = "\\login " + usersock.getUser().getUsername();
+					this.directMessageQ.add(new UserMessage(message));
+				}
+				
 				break;
 				
 				
 			case VERSION:
+				VersionCommand versioncmd = (VersionCommand)command;
+				
 				user = null;
 				for (UserSock usersock : this.usersocks) {
-					if (usersock.getSock() == command.getSock()) {
+					if (usersock.getSock() == versioncmd.getSock()) {
 						user = usersock.getUser();
 						break;
 					}
@@ -354,10 +467,12 @@ public class Server implements ILoggable {
 				
 				
 			case LOGOUT:
+				LogoutCommand logoutcmd = (LogoutCommand)command;
+				
 				success = false;
 				user = null;
 				for (UserSock usersock : this.usersocks) {
-					if (usersock.getSock() == command.getSock()) {
+					if (usersock.getSock() == logoutcmd.getSock()) {
 						user = usersock.getUser();
 						this.usersocks.remove(usersock);
 						Debug.log("User logout successful: " + user + " @ " + usersock.getSock());
@@ -415,6 +530,9 @@ public class Server implements ILoggable {
 					break;
 				}
 				
+				//Queue direct message to sending user for chat purposes
+				this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), user));
+				
 				target = null;
 				for (UserSock usersock : this.usersocks) {
 					if (tellcmd.getToUsername().equals(usersock.getUser().getUsername())) {
@@ -428,6 +546,7 @@ public class Server implements ILoggable {
 					break;
 				}
 				
+				//Queue direct message to target user
 				this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), target));
 				
 				break;
@@ -453,8 +572,30 @@ public class Server implements ILoggable {
 				break;
 				
 				
+			case SPAWN:
+				SpawnCommand spawncmd = (SpawnCommand)command;
+				
+				for (UserSock usersock : this.usersocks) {
+					
+				}
+				
+				break;
+				
+			case KILL:
+				KillCommand killcmd = (KillCommand)command;
+				
+				//Check to see if User is logged in
+				for (UserSock usersock : this.usersocks) {
+					if (usersock.getUser().getUsername().equals(killcmd.getName())) {
+						//Broadcast kill command
+					}
+				}
+				
+				break;
+				
 			default:
-				Debug.warn("Invalid command type: " + command);
+				Debug.warn("Invalid or unhandled command type: " + command);
+				Debug.warn(this);
 				break;
 			}
 		}
@@ -463,14 +604,26 @@ public class Server implements ILoggable {
 	}
 	
 	private void sendMessages() {
-		if (this.isOpen()) {
-			//Send Direct Messages
-			for (UserMessage usermessage : this.directMessageQ) write(usermessage);
-			this.directMessageQ.clear();
-			
-			//Broadcast Messages
-			for (UserMessage usermessage : this.broadcastQ) write(usermessage);
-			this.broadcastQ.clear();
+		if (!this.isOpen()) return;
+		
+		//Send Direct Messages
+		for (UserMessage usermessage : this.directMessageQ) write(usermessage);
+		this.directMessageQ.clear();
+		
+		//Broadcast Messages
+		for (UserMessage usermessage : this.broadcastQ) write(usermessage);
+		this.broadcastQ.clear();
+	}
+	
+	private void closeUserSocks() {
+		if (!this.isOpen()) return;
+		
+		for (UserSock usersock : this.closeQ) {
+			if (usersock.getSock() != null) try  {
+				usersock.getSock().close();
+				this.usersocks.remove(usersock);
+				this.socks.remove(usersock.getSock());
+			} catch (Exception e) { e.printStackTrace(); }
 		}
 	}
 	
@@ -556,9 +709,9 @@ public class Server implements ILoggable {
 			byte[] buff = message.getBytes();
 			ostream.write(buff);
 		} catch (IOException e) {
-			Debug.warn("Unable to write to Socket. Removing UserSock record... " + sock);
-			for (UserSock usersock : this.usersocks) if (usersock.getSock() == sock) this.usersocks.remove(usersock);
-			e.printStackTrace();
+			Debug.warn("Unable to write to Socket: " + sock);
+			this.serverUI.log("Unable to write to Socket: " + sock);
+//			e.printStackTrace();
 		}
 	}
 	
@@ -576,8 +729,8 @@ public class Server implements ILoggable {
 	@Override
 	public String toString() {
 		String str = "SERVER";
-		if (this.isOpen()) str += "{serverSock=" + this.serverSock.toString() + " hostname=" + this.hostname + " hostaddress=" + this.hostaddress + "}";
-		else str += "{serverSock=" + this.serverSock.toString() + "}";
+		if (this.isOpen()) str += "{version=" + VERSION_HI + "." + VERSION_LO + " serverSock=" + this.serverSock + " hostname=" + this.hostname + " hostaddress=" + this.hostaddress + "}";
+		else str += "{serverSock=" + this.serverSock + "}";
 		return str;
 	}
 	
@@ -605,14 +758,17 @@ public class Server implements ILoggable {
 		
 	}
 	
-	private static class UserSock {
+	private static class UserSock implements ILoggable {
 		
 		private User user;
 		private Socket sock;
+		//Flag for use during server roll call
+		private boolean rcflag;
 		
 		public UserSock(User user, Socket sock) {
 			this.user = user;
 			this.sock = sock;
+			this.rcflag = false;
 		}
 		
 		public User getUser() {
@@ -621,6 +777,21 @@ public class Server implements ILoggable {
 		
 		public Socket getSock() {
 			return this.sock;
+		}
+		
+		public void setRC(boolean rc) {
+			this.rcflag = rc;
+		}
+		
+		public boolean getRC() {
+			return this.rcflag;
+		}
+		
+		@Override
+		public String toString() {
+			String str = "USER_SOCK{user=" + this.user;
+			str += " sock=" + this.sock + "}";
+			return str;
 		}
 		
 	}

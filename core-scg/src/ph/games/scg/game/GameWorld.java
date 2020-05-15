@@ -283,8 +283,13 @@ public class GameWorld {
 		}
 	}
 	
+	public void addUserEntity(String username) {
+		UserEntity userEntity = new UserEntity(new User(username), EntityFactory.createUserEntity(this.bulletSystem, 10f, 16f, 18f));
+		this.engine.addEntity(userEntity.getEntity());
+		this.userEntities.add(userEntity);
+	}
+	
 	public void updateUserEntity(String username, Vector3 moveVector, float facing, float deltaTime) {
-		
 		Entity entity = null;
 		for (UserEntity userEntity : this.userEntities) {
 			if (userEntity.getUser().getUsername().equals(username)) {
@@ -305,10 +310,28 @@ public class GameWorld {
 		}
 	}
 	
-	public void addUserEntity(String username) {
-		UserEntity userEntity = new UserEntity(new User(username), EntityFactory.createUserEntity(this.bulletSystem, 10f, 16f, 18f));
-		this.engine.addEntity(userEntity.getEntity());
-		this.userEntities.add(userEntity);
+	public void spawnUserEntity(String username, Vector3 position) {
+		for (UserEntity userEntity : this.userEntities) {
+			if (userEntity.getUser().getUsername().equals(username)) {
+				Entity entity = userEntity.getEntity();
+				
+				
+				
+				break;
+			}
+		}
+	}
+
+	public void killUserEntity(String username) {
+		for (UserEntity userEntity : this.userEntities) {
+			if (userEntity.getUser().getUsername().equals(username)) {
+				Entity entity = userEntity.getEntity();
+				
+				
+				
+				break;
+			}
+		}
 	}
 	
 	public void removeUserEntity(String username) {
@@ -341,7 +364,5 @@ public class GameWorld {
 		}
 		
 	}
-
-
 	
 }

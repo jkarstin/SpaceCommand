@@ -39,6 +39,6 @@ public class LoginCommand extends Command {
 	
 	@Override
 	public String toString() {
-		return super.toString() + "_LOGIN{sock=" + this.getSock() + " username=" + this.username + " password=" + this.password + "}";
+		return super.toString() + "{sock=" + this.getSock() + " username=" + this.username + " password=" + this.password + "}";
 	}
 }

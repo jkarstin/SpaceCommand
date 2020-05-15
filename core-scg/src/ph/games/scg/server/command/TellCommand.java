@@ -32,7 +32,7 @@ public class TellCommand extends Command {
 	
 	@Override
 	public String toString() {
-		return super.toString() + "_TELL{sock=" + this.getSock() + " toUsername=" + this.toUsername + " message=" + this.message + "}";
+		return super.toString() + "{sock=" + this.getSock() + " toUsername=" + this.toUsername + " message=" + this.message + "}";
 	}
 	
 }

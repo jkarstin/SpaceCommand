@@ -26,7 +26,7 @@ public class SayCommand extends Command {
 	
 	@Override
 	public String toString() {
-		return super.toString() + "_SAY{sock=" + this.getSock() + " message=" + this.message + "}";
+		return super.toString() + "{sock=" + this.getSock() + " message=" + this.message + "}";
 	}
 	
 }

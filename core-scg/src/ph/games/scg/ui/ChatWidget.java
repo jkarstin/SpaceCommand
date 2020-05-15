@@ -111,7 +111,7 @@ public class ChatWidget extends Actor {
 					gameUI.revertKeyboardFocus();
 					return true;
 				case Input.Keys.ENTER:
-					logText(chatField.getText());
+//					logText(chatField.getText());
 					Core.client.queueMessage(chatField.getText());
 					chatField.setText("");
 					return true;

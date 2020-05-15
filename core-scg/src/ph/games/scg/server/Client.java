@@ -11,9 +11,12 @@ import com.badlogic.gdx.utils.Disposable;
 
 import ph.games.scg.game.GameWorld;
 import ph.games.scg.server.command.Command;
+import ph.games.scg.server.command.KillCommand;
 import ph.games.scg.server.command.LoginCommand;
 import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
+import ph.games.scg.server.command.RollCallCommand;
+import ph.games.scg.server.command.SpawnCommand;
 import ph.games.scg.ui.ChatWidget;
 import ph.games.scg.util.Debug;
 
@@ -264,13 +267,18 @@ public class Client implements Disposable {
 		}
 		catch (IOException e) { e.printStackTrace(); }
 		
-		
+		//Catch and process any recognized commands from the Server
 		ArrayList<String> deQMessages = new ArrayList<String>();
 		for (String message : this.inboundMessages) {
 			String[] tokens = message.split(" ");
-			if (tokens != null && tokens.length > 2) switch (tokens[0]) {
+			if (tokens != null && tokens.length > 1) switch (tokens[0]) {
 			case "[SERVER]":
 				switch (tokens[1]) {
+				case "\\rc":
+					this.commandsFromServer.add(new RollCallCommand(this.sock, null));
+					deQMessages.add(message);
+					break;
+				
 				case "\\login":
 					//Login command relayed, add new UserEntity to gameWorld
 					this.commandsFromServer.add(new LoginCommand(tokens[2]));
@@ -308,36 +316,60 @@ public class Client implements Disposable {
 	
 	//TODO: Carry out commands delivered by Server to update world state
 	private void executeServerCommands() {
-		for (Command cmd : this.commandsFromServer) {
-			Debug.log("Command From Server: " + cmd);
+		if (this.gameWorld == null || this.user == null) return;
+		
+		for (Command command : this.commandsFromServer) {
+			Debug.log("Command From Server: " + command);
 			
 			
-			switch (cmd.getType()) {
-			case LOGIN:
-				if (this.gameWorld == null || this.user == null) break;
+			switch (command.getType()) {
+			case ROLLCALL:
+				//Relay roll call command back to server to confirm
+				this.outgoingCommands.add(command);
 				
-				LoginCommand logincmd = (LoginCommand)cmd;
+				break;
+			
+			case LOGIN:
+				LoginCommand logincmd = (LoginCommand)command;
+				
 				if (!this.user.getUsername().equals(logincmd.getUsername())) {
 					//Add new UserEntity to GameWorld
 					this.gameWorld.addUserEntity(logincmd.getUsername());
 				}
 				
 				break;
+
 			case LOGOUT:
-				if (this.gameWorld == null || this.user == null) break;
+				LogoutCommand logoutcmd = (LogoutCommand)command;
 				
-				LogoutCommand logoutcmd = (LogoutCommand)cmd;
 				if (!this.user.getUsername().equals(logoutcmd.getUsername())) {
 					//Remove UserEntity from GameWorld
 					this.gameWorld.removeUserEntity(logoutcmd.getUsername());
 				}
-				break;
-			case MOVE:
-				if (this.gameWorld == null) break;
 				
-				MoveCommand movecmd = (MoveCommand)cmd;
-				this.gameWorld.updateUserEntity(movecmd.getName(), movecmd.getMoveVector(), movecmd.getFacing(), movecmd.getDeltaTime());
 				break;
+			
+			case MOVE:
+				MoveCommand movecmd = (MoveCommand)command;
+				
+				this.gameWorld.updateUserEntity(movecmd.getName(), movecmd.getMoveVector(), movecmd.getFacing(), movecmd.getDeltaTime());
+				
+				break;
+			
+			case SPAWN:
+				SpawnCommand spawncmd = (SpawnCommand)command;
+				
+				this.gameWorld.spawnUserEntity(spawncmd.getName(), spawncmd.getPosition());
+				
+				break;
+				
+			case KILL:
+				KillCommand killcmd = (KillCommand)command;
+				
+				this.gameWorld.killUserEntity(killcmd.getName());
+				
+				break;
+				
 			default:
 				break;
 			}
@@ -349,12 +381,11 @@ public class Client implements Disposable {
 	
 	private void displayMessages() {
 		for (String message : this.inboundMessages) {
-			Debug.log(message);
 			if (this.chatWidget == null) break;
 			
 			this.chatWidget.logText(message);
 		}
-		
+		//Clear inboundMessages queue
 		this.inboundMessages.clear();
 	}
 	

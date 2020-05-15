@@ -32,6 +32,9 @@ public class LogoutCommand extends Command {
 	
 	@Override
 	public String toString() {
-		return super.toString() + "_LOGOUT{sock=" + this.getSock() + "}";
+		String str = super.toString() + "{sock=" + this.getSock();
+		str += " username=" + this.username;
+		str += "}";
+		return str;
 	}
 }

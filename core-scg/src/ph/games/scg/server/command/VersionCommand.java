@@ -19,7 +19,7 @@ public class VersionCommand extends Command {
 	
 	@Override
 	public String toString() {
-		return super.toString() + "_VERSION{sock=" + this.getSock() + "}";
+		return super.toString() + "{sock=" + this.getSock() + "}";
 	}
 	
 }
