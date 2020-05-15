@@ -27,7 +27,7 @@ public class StatusSystem extends EntitySystem {
    public void update(float dt) {
       for (Entity entity : this.entities) {
          entity.getComponent(StatusComponent.class).update(dt);
-         if (entity.getComponent(StatusComponent.class).aliveStateTime >= 3.4f) gameWorld.remove(entity);
+         if (entity.getComponent(StatusComponent.class).dyingStateTimer >= StatusComponent.DYING_STATE_TIME) gameWorld.remove(entity);
       }
    }
    

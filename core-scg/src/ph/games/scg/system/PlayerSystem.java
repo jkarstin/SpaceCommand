@@ -8,7 +8,6 @@ import com.badlogic.ashley.core.Family;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Camera;
-import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
@@ -132,9 +131,10 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		this.camera.update(true);
 		
 		if (recordMovement) {
+			//TODO: Figure out why this isn't capturing your rotation
 			Quaternion quat = new Quaternion();
 			this.modelComponent.instance.transform.getRotation(quat);
-			float facing = quat.getAngleAround(Vector3.Y);
+			float facing = quat.getAngleAround(this.camera.up);
 			
 			GameCore.client.move(movement, facing, dt);
 		}

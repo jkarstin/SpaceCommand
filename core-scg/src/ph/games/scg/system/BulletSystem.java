@@ -9,6 +9,7 @@ import com.badlogic.gdx.math.Vector3;
 //See <http://javadox.com/com.badlogicgames.gdx/gdx-bullet/1.3.1/overview-summary.html> for API info
 import com.badlogic.gdx.physics.bullet.collision.btAxisSweep3;
 import com.badlogic.gdx.physics.bullet.collision.btBroadphaseInterface;
+import com.badlogic.gdx.physics.bullet.collision.btBroadphaseProxy;
 import com.badlogic.gdx.physics.bullet.collision.btCollisionConfiguration;
 import com.badlogic.gdx.physics.bullet.collision.btCollisionDispatcher;
 import com.badlogic.gdx.physics.bullet.collision.btDefaultCollisionConfiguration;
@@ -64,6 +65,19 @@ public class BulletSystem extends EntitySystem implements EntityListener {
          this.collisionWorld.removeCollisionObject(character.ghostObject);
       }
    }
+   
+   public void addBody(Entity entity) {
+	   BulletComponent bcomp = entity.getComponent(BulletComponent.class);
+	   CharacterComponent ccomp = entity.getComponent(CharacterComponent.class);
+	   if (bcomp != null && ccomp != null) {
+		   this.collisionWorld.addCollisionObject(
+				   ccomp.ghostObject,
+				   (short)btBroadphaseProxy.CollisionFilterGroups.CharacterFilter,
+				   (short)btBroadphaseProxy.CollisionFilterGroups.AllFilter
+				   );
+		   this.collisionWorld.addAction(ccomp.characterController);
+	   }
+	}
    
    public void dispose() {
       this.collisionWorld.dispose();

@@ -255,7 +255,12 @@ public class GameWorld {
 		this.renderSystem.dispose();
 		this.renderSystem = null;
 	}
-
+	
+	public void add(Entity entity) {
+		this.engine.addEntity(entity);
+		this.bulletSystem.addBody(entity);
+	}
+	
 	public void remove(Entity entity) {
 		this.engine.removeEntity(entity);
 		this.bulletSystem.removeBody(entity);
@@ -304,7 +309,7 @@ public class GameWorld {
 				Debug.log("Spawning UserEntity: " + userEntity);
 				
 				//Add entity to gameWorld at specified position
-				this.engine.addEntity(entity);
+				this.add(entity);
 				
 				ModelComponent mcomp = entity.getComponent(ModelComponent.class);
 				CharacterComponent ccomp = entity.getComponent(CharacterComponent.class);
@@ -344,7 +349,7 @@ public class GameWorld {
 				Entity entity = userEntity.getEntity();
 				
 				//Remove entity from gameWorld (keep in userEntities ArrayList)
-				this.engine.removeEntity(entity);
+				this.remove(userEntity.getEntity());
 				
 				break;
 			}
@@ -354,7 +359,7 @@ public class GameWorld {
 	public void removeUserEntity(String username) {
 		for (UserEntity userEntity : this.userEntities) {
 			if (userEntity.getUser().getUsername().equals(username)) {
-				this.engine.removeEntity(userEntity.getEntity());
+				this.remove(userEntity.getEntity());
 				this.userEntities.remove(userEntity);
 				break;
 			}

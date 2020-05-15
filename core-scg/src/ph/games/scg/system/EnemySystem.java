@@ -65,14 +65,14 @@ public class EnemySystem extends EntitySystem implements EntityListener {
          float dZ = playerPosition.z - enemyPosition.z;
          float theta = (float)(Math.atan2(dX, dZ));
          //Calculate the transforms
-         Quaternion rot = quat.setFromAxis(0f, 1f, 0f, (float)Math.toDegrees(theta) + 90f);
+         Quaternion rot = quat.setFromAxis(0f, 1f, 0f, (float)Math.toDegrees(theta));
          //Walk
          Matrix4 ghost = new Matrix4();
          Vector3 translation = new Vector3();
          cm.get(e).ghostObject.getWorldTransform(ghost);
          ghost.getTranslation(translation);
          mod.instance.transform.set(translation.x, translation.y, translation.z, rot.x, rot.y, rot.z, rot.w);
-         cm.get(e).characterDirection.set(-1f, 0f, 0f).rot(mod.instance.transform);
+         cm.get(e).characterDirection.set(0f, 0f, 1f).rot(mod.instance.transform);
          cm.get(e).walkDirection.set(0f, 0f, 0f);
          cm.get(e).walkDirection.add(cm.get(e).characterDirection);
          cm.get(e).walkDirection.scl(3f * dt);

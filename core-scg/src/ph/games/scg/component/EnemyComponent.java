@@ -9,7 +9,7 @@ public class EnemyComponent implements Component {
       RUNNING
    }
    
-   public STATE state = STATE.IDLE;
+   public STATE state;
    
    public EnemyComponent(STATE state) {
       this.state = state;

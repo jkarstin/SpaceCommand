@@ -231,10 +231,10 @@ public class EntityFactory {
 				);
 		bulletSystem.collisionWorld.addAction(characterComponent.characterController);
 
-		entity.add(new EnemyComponent(EnemyComponent.STATE.IDLE));
+		entity.add(new EnemyComponent(EnemyComponent.STATE.RUNNING));
 
 		AnimationComponent animationComponent = new AnimationComponent(modelComponent.instance);
-		animationComponent.animate(EnemyAnimations.IdleID, 0f, -1f, -1, 1f);
+		animationComponent.animate(EnemyAnimations.BasicRunID, EnemyAnimations.offsetBasicRun, EnemyAnimations.durationBasicRun, -1, 1f);
 		entity.add(animationComponent);
 
 		entity.add(new StatusComponent(animationComponent));

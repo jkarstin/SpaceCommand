@@ -5,9 +5,11 @@ import com.badlogic.ashley.core.Component;
 import ph.games.scg.util.EnemyAnimations;
 
 public class StatusComponent implements Component {
-
+	
+	public static final float DYING_STATE_TIME = 1f;
+	
 	public boolean alive, running;
-	public float aliveStateTime;
+	public float dyingStateTimer;
 
 	private AnimationComponent animationComponent;
 
@@ -18,7 +20,7 @@ public class StatusComponent implements Component {
 	}
 
 	public void update(float dt) {
-		if (!this.alive) this.aliveStateTime += dt;
+		if (!this.alive) this.dyingStateTimer += dt;
 	}
 
 	public void setAlive(boolean alive) {
