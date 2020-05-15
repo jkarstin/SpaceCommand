@@ -17,6 +17,23 @@ public class SpawnCommand extends Command {
 		this.name = name;
 		this.position = position;
 	}
+	public SpawnCommand(String name, String positionString) {
+		super(CMD_TYP.SPAWN, null);
+		
+		this.name = name;
+		
+		String[] positionData = positionString.split(",");
+		if (positionData.length == 3) {
+			this.position = new Vector3(
+					Float.valueOf(positionData[0]),
+					Float.valueOf(positionData[1]),
+					Float.valueOf(positionData[2])
+					);
+		}
+		else {
+			this.position = new Vector3();
+		}
+	}
 	
 	public String getName() {
 		return this.name;

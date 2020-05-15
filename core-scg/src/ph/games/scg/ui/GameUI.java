@@ -2,6 +2,7 @@ package ph.games.scg.ui;
 
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import ph.games.scg.game.GameCore;
@@ -13,6 +14,7 @@ public class GameUI {
 	private InputWidget inputWidget;
 	private ChatWidget chatWidget;
 	public HealthWidget healthWidget;
+	private ScoreWidget scoreWidget;
 	private PauseWidget pauseWidget;
 	private CrosshairWidget crosshairWidget;
 	public GameOverWidget gameOverWidget;
@@ -30,6 +32,7 @@ public class GameUI {
 		this.gameOverWidget = new GameOverWidget(this.stage);
 		this.crosshairWidget = new CrosshairWidget();
 		this.healthWidget = new HealthWidget();
+		this.scoreWidget = new ScoreWidget();
 	}
 
 	public void configureWidgets() {
@@ -55,11 +58,14 @@ public class GameUI {
 				);
 		this.chatWidget.setSize(300f, 300f);
 		this.chatWidget.setPosition(0f, 0f);
+		this.scoreWidget.setSize(200f, 60f);
+		this.scoreWidget.setPosition(0f, GameCore.VIRTUAL_HEIGHT, Align.topLeft);
 
 		this.stage.addActor(this.healthWidget);
 		this.stage.addActor(this.crosshairWidget);
 		this.stage.addActor(this.chatWidget);
 		this.stage.addActor(this.inputWidget);
+		this.stage.addActor(this.scoreWidget);
 		this.stage.setKeyboardFocus(this.inputWidget);
 	}
 

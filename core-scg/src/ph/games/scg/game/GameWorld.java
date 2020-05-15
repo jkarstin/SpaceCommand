@@ -37,6 +37,7 @@ public class GameWorld {
 	private DebugDrawer debugDrawer;
 	private Engine engine;
 	private Entity character;
+	private Entity gun;
 	private GameUI gameUI;
 //	private UserEntitySystem userEntitySystem;
 	private PlayerSystem playerSystem;
@@ -221,6 +222,10 @@ public class GameWorld {
 	private void createPlayer(float x, float y, float z) {
 		this.character = EntityFactory.createPlayer(this.bulletSystem, x, y, z);
 		this.engine.addEntity(this.character);
+		this.gun = EntityFactory.loadGun(4f, -4f, -7f);
+		this.engine.addEntity(this.gun);
+		this.playerSystem.gun = this.gun;
+		this.renderSystem.gun = this.gun;
 	}
 	
 //	private void createSpaceship(float x, float y, float z) {
@@ -276,11 +281,11 @@ public class GameWorld {
 
 	private void checkPause() {
 		if (Settings.Paused) {
-			this.bulletSystem.setProcessing(false);
+//			this.bulletSystem.setProcessing(false);
 			this.playerSystem.setProcessing(false);
 		}
 		else {
-			this.bulletSystem.setProcessing(true);
+//			this.bulletSystem.setProcessing(true);
 			this.playerSystem.setProcessing(true);
 		}
 	}
@@ -289,27 +294,6 @@ public class GameWorld {
 		UserEntity userEntity = new UserEntity(new User(username), EntityFactory.createUserEntity(this.bulletSystem, 10f, 16f, 18f));
 		this.engine.addEntity(userEntity.getEntity());
 		this.userEntities.add(userEntity);
-	}
-	
-	public void updateUserEntity(String username, Vector3 moveVector, float facing, float deltaTime) {
-		Entity entity = null;
-		for (UserEntity userEntity : this.userEntities) {
-			if (userEntity.getUser().getUsername().equals(username)) {
-				entity = userEntity.getEntity();
-				break;
-			}
-		}
-		
-		if (entity != null) {
-			UserEntityComponent uec = entity.getComponent(UserEntityComponent.class);
-			if (uec == null) Debug.warn("Entity does not have a UserEntityComponent");
-			else {
-				Debug.log("Queueing movement data... " + moveVector + "," + facing + "," + deltaTime);
-				uec.queuedMovement.add(moveVector);
-				uec.queuedFacing.add(facing);
-				uec.queuedDeltaTime.add(deltaTime);
-			}
-		}
 	}
 	
 	public void spawnUserEntity(String username, Vector3 position) {
@@ -329,6 +313,27 @@ public class GameWorld {
 				ccomp.ghostObject.setWorldTransform(mcomp.instance.transform);
 				
 				break;
+			}
+		}
+	}
+	
+	public void updateUserEntity(String username, Vector3 moveVector, float facing, float deltaTime) {
+		Entity entity = null;
+		for (UserEntity userEntity : this.userEntities) {
+			if (userEntity.getUser().getUsername().equals(username)) {
+				entity = userEntity.getEntity();
+				break;
+			}
+		}
+		
+		if (entity != null) {
+			UserEntityComponent uec = entity.getComponent(UserEntityComponent.class);
+			if (uec == null) Debug.warn("Entity does not have a UserEntityComponent");
+			else {
+				Debug.log("Queueing movement data... " + moveVector + "," + facing + "," + deltaTime);
+				uec.queuedMovement.add(moveVector);
+				uec.queuedFacing.add(facing);
+				uec.queuedDeltaTime.add(deltaTime);
 			}
 		}
 	}

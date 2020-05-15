@@ -53,7 +53,9 @@ public class EntityFactory {
 		ModelBuilder modelBuilder = new ModelBuilder();
 		Texture playerTexture = new Texture(Gdx.files.internal("badlogic.jpg"));
 		playerModel = modelBuilder.createCapsule(
-				2f, 6f, 16,
+				2f, //Radius
+				6f, //Height
+				16, //Divisions
 				new Material(
 						TextureAttribute.createDiffuse(playerTexture),
 						ColorAttribute.createSpecular(1f, 1f, 1f, 1f),
@@ -61,7 +63,7 @@ public class EntityFactory {
 						),
 				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates
 				);
-		//		spaceshipModel = null;
+//		spaceshipModel = null;
 		enemyModel = null;
 	}
 

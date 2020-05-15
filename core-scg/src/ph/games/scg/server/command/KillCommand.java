@@ -13,6 +13,7 @@ public class KillCommand extends Command {
 		
 		this.name = name;
 	}
+	public KillCommand(String name) { this(null, name); }
 	
 	//TODO: Revisit this idea when you have time
 //	public KillCommand(String commandString) {

@@ -9,14 +9,16 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.physics.bullet.collision.ClosestRayResultCallback;
 
+import ph.games.scg.component.AnimationComponent;
 import ph.games.scg.component.CharacterComponent;
-import ph.games.scg.component.EnemyComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.PlayerComponent;
+import ph.games.scg.component.StatusComponent;
 import ph.games.scg.game.GameCore;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Debug;
@@ -112,22 +114,15 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 			tmp.set(this.camera.direction).crs(this.camera.up).nor();
 			this.camera.direction.rotate(tmp, -2*this.turnSpeed/3f);
 		}
-
-		movement.scl(10f * dt);
 		
-		if (recordMovement) GameCore.client.move(movement, rotation, dt);
-
-		this.characterComponent.walkDirection.add(movement);
 		this.camera.rotate(this.camera.up, rotation);
-
-//		this.characterComponent.walkDirection.scl(10f * dt);
+		movement.scl(10f * dt);
+		this.characterComponent.walkDirection.add(movement);
 		this.characterComponent.characterController.setWalkDirection(this.characterComponent.walkDirection);
 
 		//Move
-		Matrix4 ghost = new Matrix4();
 		Vector3 translation = new Vector3();
-		this.characterComponent.ghostObject.getWorldTransform(ghost);
-		ghost.getTranslation(translation);
+		this.characterComponent.ghostObject.getWorldTransform().getTranslation(translation);
 		this.modelComponent.instance.transform.set(
 				translation.x, translation.y, translation.z,
 				this.camera.direction.x, this.camera.direction.y, this.camera.direction.z,
@@ -135,6 +130,14 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 				);
 		this.camera.position.set(translation.x, translation.y, translation.z);
 		this.camera.update(true);
+		
+		if (recordMovement) {
+			Quaternion quat = new Quaternion();
+			this.modelComponent.instance.transform.getRotation(quat);
+			float facing = quat.getAngleAround(Vector3.Y);
+			
+			GameCore.client.move(movement, facing, dt);
+		}
 	}
 
 	private void fire() {
@@ -152,13 +155,16 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		if (rayTestCB.hasHit()) {
 			final Entity hitEntity = (Entity)(rayTestCB.getCollisionObject().userData);
 			
-			EnemyComponent ecomp;
-			if ((ecomp = hitEntity.getComponent(EnemyComponent.class)) != null) {
-				//We hit an enemy, boys!
-				Debug.log("Enemy entity hit: " + ecomp.toString());
+			StatusComponent scomp = hitEntity.getComponent(StatusComponent.class);
+			if (scomp != null) {
+				//We hit one, boys!
+				Debug.log("Entity hit: " + scomp);
+		             scomp.setAlive(false);
+		             PlayerComponent.score += 100;
 			}
 			
 		}
+		this.gun.getComponent(AnimationComponent.class).animate("GunArmature|ShootAction", 1, 1f);
 	}
 
 	private void updateStatus() {

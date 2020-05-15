@@ -298,6 +298,18 @@ public class Client implements Disposable {
 					deQMessages.add(message);
 					break;
 					
+				case "\\spawn":
+					//Spawn command relayed, apply to target UserEntity
+					this.commandsFromServer.add(new SpawnCommand(tokens[2], tokens[3]));
+					deQMessages.add(message);
+					break;
+					
+				case "\\kill":
+					//Kill command relayed, apply to target UserEntity
+					this.commandsFromServer.add(new KillCommand(tokens[2]));
+					deQMessages.add(message);
+					break;
+					
 				default:
 					//Leave server message alone
 					break;
