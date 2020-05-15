@@ -13,7 +13,7 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 
 import ph.games.scg.component.AnimationComponent;
 import ph.games.scg.component.ModelComponent;
-import ph.games.scg.game.Core;
+import ph.games.scg.game.GameCore;
 import ph.games.scg.util.Settings;
 
 public class RenderSystem extends EntitySystem {
@@ -30,7 +30,7 @@ public class RenderSystem extends EntitySystem {
       this.environment = new Environment();
       this.environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.3f, 0.3f, 0.3f, 1f));
       this.environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
-      this.pCam = new PerspectiveCamera(FOV, Core.VIRTUAL_WIDTH, Core.VIRTUAL_HEIGHT);
+      this.pCam = new PerspectiveCamera(FOV, GameCore.VIRTUAL_WIDTH, GameCore.VIRTUAL_HEIGHT);
       this.pCam.far = 10000f;
    }
    

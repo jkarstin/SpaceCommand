@@ -4,7 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
-import ph.games.scg.game.Core;
+import ph.games.scg.game.GameCore;
 
 public class GameUI {
 
@@ -18,7 +18,7 @@ public class GameUI {
 	public GameOverWidget gameOverWidget;
 
 	public GameUI() {
-		this.stage = new Stage(new FitViewport(Core.VIRTUAL_WIDTH, Core.VIRTUAL_HEIGHT));
+		this.stage = new Stage(new FitViewport(GameCore.VIRTUAL_WIDTH, GameCore.VIRTUAL_HEIGHT));
 		this.setWidgets();
 		this.configureWidgets();
 	}
@@ -35,23 +35,23 @@ public class GameUI {
 	public void configureWidgets() {
 		this.healthWidget.setSize(140f, 25f);
 		this.healthWidget.setPosition(
-				(Core.VIRTUAL_WIDTH-this.healthWidget.getWidth())/2f,
+				(GameCore.VIRTUAL_WIDTH-this.healthWidget.getWidth())/2f,
 				0f
 				);
 		this.pauseWidget.setSize(64f, 64f);
 		this.pauseWidget.setPosition(
-				Core.VIRTUAL_WIDTH-this.pauseWidget.getWidth(),
-				Core.VIRTUAL_HEIGHT-this.pauseWidget.getHeight()
+				GameCore.VIRTUAL_WIDTH-this.pauseWidget.getWidth(),
+				GameCore.VIRTUAL_HEIGHT-this.pauseWidget.getHeight()
 				);
 		this.gameOverWidget.setSize(280f, 100f);
 		this.gameOverWidget.setPosition(
-				(Core.VIRTUAL_WIDTH-280f)/2f,
-				Core.VIRTUAL_HEIGHT/2f
+				(GameCore.VIRTUAL_WIDTH-280f)/2f,
+				GameCore.VIRTUAL_HEIGHT/2f
 				);
 		this.crosshairWidget.setSize(32f, 32f);
 		this.crosshairWidget.setPosition(
-				(Core.VIRTUAL_WIDTH-32f)/2f,
-				(Core.VIRTUAL_HEIGHT-32f)/2f
+				(GameCore.VIRTUAL_WIDTH-32f)/2f,
+				(GameCore.VIRTUAL_HEIGHT-32f)/2f
 				);
 		this.chatWidget.setSize(300f, 300f);
 		this.chatWidget.setPosition(0f, 0f);

@@ -1,10 +1,9 @@
-package ph.games.scg.screen;
+package ph.games.scg.server;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 
-import ph.games.scg.server.Server;
-import ph.games.scg.server.ServerUI;
+import ph.games.scg.screen.BaseScreen;
 
 public class ServerScreen extends BaseScreen {
 	
@@ -13,8 +12,8 @@ public class ServerScreen extends BaseScreen {
 	
 	@Override
 	protected void initialize() {
-		this.serverUI = new ServerUI();
-		this.gameServer = new Server(21595, this.serverUI);
+		this.gameServer = new Server(21595);
+		this.serverUI = new ServerUI(this.gameServer);
 		this.gameServer.open();
 	}
 

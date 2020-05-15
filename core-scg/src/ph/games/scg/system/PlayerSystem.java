@@ -17,7 +17,7 @@ import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.EnemyComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.PlayerComponent;
-import ph.games.scg.game.Core;
+import ph.games.scg.game.GameCore;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.Settings;
@@ -115,7 +115,7 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 
 		movement.scl(10f * dt);
 		
-		if (recordMovement) Core.client.move(movement, rotation, dt);
+		if (recordMovement) GameCore.client.move(movement, rotation, dt);
 
 		this.characterComponent.walkDirection.add(movement);
 		this.camera.rotate(this.camera.up, rotation);

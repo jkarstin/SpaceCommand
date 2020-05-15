@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 
 import ph.games.scg.component.CharacterComponent;
+import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.UserEntityComponent;
 import ph.games.scg.environment.Room;
 import ph.games.scg.environment.Room.Quad;
@@ -27,6 +28,7 @@ import ph.games.scg.system.UserEntitySystem;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.EntityFactory;
+import ph.games.scg.util.ILoggable;
 import ph.games.scg.util.Settings;
 
 public class GameWorld {
@@ -315,7 +317,16 @@ public class GameWorld {
 			if (userEntity.getUser().getUsername().equals(username)) {
 				Entity entity = userEntity.getEntity();
 				
+				Debug.log("Spawning UserEntity: " + userEntity);
 				
+				//Add entity to gameWorld at specified position
+				this.engine.addEntity(entity);
+				
+				ModelComponent mcomp = entity.getComponent(ModelComponent.class);
+				CharacterComponent ccomp = entity.getComponent(CharacterComponent.class);
+				
+				mcomp.instance.transform.setTranslation(position);
+				ccomp.ghostObject.setWorldTransform(mcomp.instance.transform);
 				
 				break;
 			}
@@ -327,7 +338,8 @@ public class GameWorld {
 			if (userEntity.getUser().getUsername().equals(username)) {
 				Entity entity = userEntity.getEntity();
 				
-				
+				//Remove entity from gameWorld (keep in userEntities ArrayList)
+				this.engine.removeEntity(entity);
 				
 				break;
 			}
@@ -337,15 +349,15 @@ public class GameWorld {
 	public void removeUserEntity(String username) {
 		for (UserEntity userEntity : this.userEntities) {
 			if (userEntity.getUser().getUsername().equals(username)) {
-				this.userEntities.remove(userEntity);
 				this.engine.removeEntity(userEntity.getEntity());
+				this.userEntities.remove(userEntity);
 				break;
 			}
 		}
 	}
 	
 	//Link between a User instance and their GameWorld representation
-	public static class UserEntity {
+	public static class UserEntity implements ILoggable {
 		
 		private User user;
 		private Entity entity;
@@ -361,6 +373,12 @@ public class GameWorld {
 		
 		public Entity getEntity() {
 			return this.entity;
+		}
+		
+		@Override
+		public String toString() {
+			String str = "USER_ENTITY{user=" + this.user + " entity=" + this.entity + "}";
+			return str;
 		}
 		
 	}

@@ -7,7 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
-import ph.games.scg.game.Core;
+import ph.games.scg.game.GameCore;
 import ph.games.scg.util.Assets;
 
 public class MainMenuScreen extends BaseScreen {
@@ -18,8 +18,8 @@ public class MainMenuScreen extends BaseScreen {
 	
 	private void processLogin() {
 		this.stage.setKeyboardFocus(null);
-		Core.client.login(this.usernameField.getText(), this.passwordField.getText());
-		Core.setActiveScreen(new GameScreen());
+		GameCore.client.login(this.usernameField.getText(), this.passwordField.getText());
+		GameCore.setActiveScreen(new GameScreen());
 	}
 	
 	@Override

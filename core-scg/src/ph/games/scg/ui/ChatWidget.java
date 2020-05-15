@@ -24,7 +24,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 
-import ph.games.scg.game.Core;
+import ph.games.scg.game.GameCore;
 import ph.games.scg.util.Assets;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.Settings;
@@ -46,7 +46,7 @@ public class ChatWidget extends Actor {
 		this.chatLog = new String[LOG_MAX_SIZE];
 		this.logLines = 0;
 		this.gameUI = gameUI;
-		Core.client.setChatWidget(this);
+		GameCore.client.setChatWidget(this);
 		setWidgets();
 		configureWidgets();
 		setListeners();
@@ -112,7 +112,7 @@ public class ChatWidget extends Actor {
 					return true;
 				case Input.Keys.ENTER:
 //					logText(chatField.getText());
-					Core.client.queueMessage(chatField.getText());
+					GameCore.client.queueMessage(chatField.getText());
 					chatField.setText("");
 					return true;
 				default:

@@ -17,6 +17,7 @@ import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
 import ph.games.scg.server.command.RollCallCommand;
 import ph.games.scg.server.command.SpawnCommand;
+import ph.games.scg.server.command.Command.CMD_TYP;
 import ph.games.scg.ui.ChatWidget;
 import ph.games.scg.util.Debug;
 
@@ -192,7 +193,7 @@ public class Client implements Disposable {
 			this.sendCommands();
 			this.timer -= SEND_FREQUENCY;
 		}
-		this.read();
+		this.readMessages();
 		this.executeServerCommands();
 		this.displayMessages();
 	}
@@ -238,7 +239,7 @@ public class Client implements Disposable {
 	}
 	
 	//Attempt to read from the socket and count number of messages
-	private int read() {
+	private int readMessages() {
 		if (!this.isOpen()) return -1;
 		
 		//Counter for number of messages received
@@ -319,8 +320,8 @@ public class Client implements Disposable {
 		if (this.gameWorld == null || this.user == null) return;
 		
 		for (Command command : this.commandsFromServer) {
-			Debug.log("Command From Server: " + command);
-			
+			//Mute RollCallCommands (they clutter output)
+			if (command.getType() != CMD_TYP.ROLLCALL) Debug.log("Command from Server: " + command);
 			
 			switch (command.getType()) {
 			case ROLLCALL:

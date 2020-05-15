@@ -2,7 +2,7 @@ package ph.games.scg.screen;
 
 import com.badlogic.gdx.Gdx;
 
-import ph.games.scg.game.Core;
+import ph.games.scg.game.GameCore;
 import ph.games.scg.game.GameWorld;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Settings;
@@ -16,7 +16,7 @@ public class GameScreen extends BaseScreen {
 	public void initialize() {
 		this.gameUI = new GameUI();
 		this.gameWorld = new GameWorld(this.gameUI);
-		Core.client.setGameWorld(this.gameWorld);
+		GameCore.client.setGameWorld(this.gameWorld);
 		Settings.Paused = false;
 		Gdx.input.setInputProcessor(this.gameUI.stage);
 		Gdx.input.setCursorCatched(true);
@@ -26,7 +26,7 @@ public class GameScreen extends BaseScreen {
 	public void update(float dt) {
 		//Updates
 		this.gameUI.update(dt);
-		Core.client.update(dt);
+		GameCore.client.update(dt);
 		//Draw
 		this.gameWorld.render(dt);
 		this.gameUI.render();

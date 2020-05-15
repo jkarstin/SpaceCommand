@@ -9,7 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
-import ph.games.scg.game.Core;
+import ph.games.scg.game.GameCore;
 import ph.games.scg.screen.GameScreen;
 import ph.games.scg.util.Assets;
 
@@ -37,7 +37,7 @@ public class GameOverWidget extends Actor {
             
             @Override
             public void clicked(InputEvent event, float x, float y) {
-               Core.setActiveScreen(new GameScreen());
+               GameCore.setActiveScreen(new GameScreen());
             }
             
          }
@@ -63,7 +63,7 @@ public class GameOverWidget extends Actor {
    
    @Override
    public void setSize(float width, float height) {
-      super.setSize(Core.VIRTUAL_WIDTH, Core.VIRTUAL_HEIGHT);
+      super.setSize(GameCore.VIRTUAL_WIDTH, GameCore.VIRTUAL_HEIGHT);
       this.image.setSize(width, height);
       this.retryButton.setSize(width / 2.5f, height / 2f);
       this.quitButton.setSize(width / 2.5f, height / 2f);

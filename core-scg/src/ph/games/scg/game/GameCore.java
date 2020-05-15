@@ -13,32 +13,32 @@ import ph.games.scg.util.Debug;
 import ph.games.scg.util.Debug.DEBUG_MODE;
 import ph.games.scg.util.Settings;
 
-public class Core extends Game {
+public class GameCore extends Game {
 	
 	public static final float VIRTUAL_WIDTH = 800f;
 	public static final float VIRTUAL_HEIGHT = 600f;
 	
-	public static Core core;
+	public static GameCore core;
 	public static Client client;
 	
 	public static void setActiveScreen(Screen screen) {
 	      //Set the active screen
-	      Core.core.screen = screen;
+	      GameCore.core.screen = screen;
 	}
 	
-	public Core() {
-		Core.core = this;;
+	public GameCore() {
+		GameCore.core = this;;
 	}
 	
 	@Override
 	public void create () {
 		Debug.setMode(DEBUG_MODE.ON);
 		
-		Core.client = new Client(Server.SERVER_IP, Server.SERVER_PORT);
+		GameCore.client = new Client(Server.SERVER_IP, Server.SERVER_PORT);
 		new Assets();
 		Settings.load();
 //		Core.setActiveScreen(new GameScreen());
-		Core.setActiveScreen(new MainMenuScreen());
+		GameCore.setActiveScreen(new MainMenuScreen());
 	}
 
 	@Override
@@ -50,7 +50,7 @@ public class Core extends Game {
 	
 	@Override
 	public void dispose () {
-		Core.client.dispose();
+		GameCore.client.dispose();
 		Settings.save();
 		Assets.dispose();
 	}

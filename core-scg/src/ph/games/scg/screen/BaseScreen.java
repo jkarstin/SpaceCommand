@@ -6,7 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
-import ph.games.scg.game.Core;
+import ph.games.scg.game.GameCore;
 
 public abstract class BaseScreen implements Screen {
 	
@@ -17,7 +17,7 @@ public abstract class BaseScreen implements Screen {
 	protected abstract void update(float dt);
 	
 	public BaseScreen() {
-		this.stage = new Stage(new FitViewport(Core.VIRTUAL_WIDTH, Core.VIRTUAL_HEIGHT));
+		this.stage = new Stage(new FitViewport(GameCore.VIRTUAL_WIDTH, GameCore.VIRTUAL_HEIGHT));
 		this.table = new Table();
 		this.table.setFillParent(true);
 		this.stage.addActor(this.table);

@@ -32,6 +32,7 @@ import ph.games.scg.server.command.SayCommand;
 import ph.games.scg.server.command.SpawnCommand;
 import ph.games.scg.server.command.TellCommand;
 import ph.games.scg.server.command.VersionCommand;
+import ph.games.scg.server.command.Command.CMD_TYP;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.ILoggable;
 
@@ -67,6 +68,7 @@ public class Server implements ILoggable {
 	
 	//Message reading
 	private byte[] buff;
+	private ArrayList<String> adminMessages;
 	private ArrayList<String> messages;
 	private ArrayList<SockSegment> sockSegments;
 	private StringTokenizer stoker;
@@ -86,8 +88,8 @@ public class Server implements ILoggable {
 	//Close Queue
 	private ArrayList<UserSock> closeQ;
 	
-	public Server(int port, ServerUI serverUI) {
-		this.serverUI = serverUI;
+	public Server(int port) {
+		this.serverUI = null;
 		
 		this.serverSock = null;
 		this.port = port;
@@ -96,6 +98,7 @@ public class Server implements ILoggable {
 		this.rollCallTimer = 0f;
 		
 		this.buff = new byte[BYTE_BUFFER_SIZE];
+		this.adminMessages = new ArrayList<String>();
 		this.messages = new ArrayList<String>();
 		this.sockSegments = new ArrayList<SockSegment>();
 		this.stoker = null;
@@ -147,6 +150,14 @@ public class Server implements ILoggable {
 		this.executeCommands();
 		//Broadcast server-wide messages
 		this.sendMessages();
+	}
+	
+	public void setServerUI(ServerUI serverUI) {
+		this.serverUI = serverUI;
+	}
+	
+	public void queueAdminMessage(String adminMessage) {
+		this.adminMessages.add(adminMessage);
 	}
 	
 	private void rollCall() {
@@ -205,6 +216,83 @@ public class Server implements ILoggable {
 	
 	private void receiveCommands() {
 		if (!this.isOpen()) return;
+		
+		//Process admin commands
+		for (String adminMessage : this.adminMessages) {
+			this.stoker = new StringTokenizer(adminMessage);
+			String token;
+			
+			String name = "";
+			String message = "";
+			float x=0f, y=0f, z=0f;
+			while ((token = pullToken()) != null) {
+				switch (token) {
+				case "\\version":
+					this.commandQ.add(new VersionCommand(null));
+					break;
+					
+				case "\\say":
+					//build message from remaining tokens
+					if ((token = pullToken()) != null) message = token;
+					while ((token = pullToken()) != null) message += " " + token;
+					this.commandQ.add(new SayCommand(null, message));
+					break;
+					
+				case "\\tell":
+					name = pullToken();
+					if (name == null) Debug.warn("Invalid use of \\tell command. Requires username value");
+					else {
+						//build message from remaining tokens
+						if ((token = pullToken()) != null) message = token;
+						while ((token = pullToken()) != null) message += " " + token;
+						//Queue \tell command to target username
+						this.commandQ.add(new TellCommand(null, name, message));
+					}
+					break;
+					
+				case "\\spawn":
+					name = pullToken();
+					
+					if (name == null) {
+						Debug.warn("Invalid use of \\spawn command. Requires name value");
+						break;
+					}
+					
+					message = pullToken();
+					if (message == null) {
+						Debug.warn("Invalid use of \\spawn command. Requires movement values");
+						break;
+					}
+					
+					String[] spawnData = message.split(",");
+					
+					x = Float.valueOf(spawnData[0]);
+					y = Float.valueOf(spawnData[1]);
+					z = Float.valueOf(spawnData[2]);
+					
+					this.commandQ.add(new SpawnCommand(null, name, new Vector3(x, y, z)));
+					
+					break;
+					
+				case "\\kill":
+					name = pullToken();
+					
+					if (name == null) {
+						Debug.warn("Invalid use of \\kill command. Requires name value");
+						break;
+					}
+					
+					this.commandQ.add(new KillCommand(null, name));
+					
+					break;
+					
+				default:
+					Debug.log("Unsupported or unrecognized command delivered: " + token);
+					break;
+				}
+			}
+		}
+		this.adminMessages.clear();
 		
 		//Attempt to read in server messages
 		for (Socket sock : this.socks) {
@@ -394,209 +482,328 @@ public class Server implements ILoggable {
 		User user, target;
 		
 		for (Command command : this.commandQ) {
-			this.serverUI.log(command);
-			switch (command.getType()) {
+			//Mute RollCallCommands (they clutter output)
+			if (command.getType() != CMD_TYP.ROLLCALL) this.serverUI.log(command);
 			
-			case ROLLCALL:
-				RollCallCommand rccmd = (RollCallCommand)command;
-				
-				//Roll call reply recieved, unflag associated UserSock
-				for (UserSock usersock : this.usersocks) {
-					if (usersock.getSock() == rccmd.getSock()) {
-						usersock.setRC(false);
-						break;
-					}
-				}
-				break;
-			
-			case LOGIN:
-				LoginCommand logincmd = (LoginCommand)command;
-				
-				success = false;
-				user = null;
-				for (User reguser : this.registeredUsers) {
-					if (reguser.getUsername().equals(logincmd.getUsername()) && reguser.hasPassword(logincmd.getPassword())) {
-						Debug.log("User logged in: " + reguser + " @ " + logincmd.getSock());
-						this.serverUI.log("User logged in: " + reguser.getUsername());
-						user = reguser;
-						this.usersocks.add(new UserSock(reguser, logincmd.getSock()));
-						success = true;
-						break;
-					}
-				}
-				
-				if (!success) {
-					Debug.log("Login attempt failed: Incorrect username or password");
-					this.serverUI.log("Login attempt failed: Incorrect username or password");
-					Debug.logv(this.registeredUsers);
-				}
-				
-				//Broadcast login message to all connected clients to update their world state
-				if (user != null) {
-					String message = "\\login " + user.getUsername();
-					this.broadcastQ.add(new UserMessage(message));
-				}
-				
-				//Send direct server message to sender to "login" all currently logged in users
-				for (UserSock usersock : this.usersocks) {
-					//Skip the sending user
-					if (usersock.getSock() == logincmd.getSock()) continue;
+			//Admin command
+			if (command.getSock() == null) {
+				switch (command.getType()) {
+				case VERSION:
+					String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
+					this.serverUI.log("[ADMIN] " + version);
 					
-					String message = "\\login " + usersock.getUser().getUsername();
-					this.directMessageQ.add(new UserMessage(message));
-				}
-				
-				break;
-				
-				
-			case VERSION:
-				VersionCommand versioncmd = (VersionCommand)command;
-				
-				user = null;
-				for (UserSock usersock : this.usersocks) {
-					if (usersock.getSock() == versioncmd.getSock()) {
-						user = usersock.getUser();
+					break;
+					
+					
+				case SAY:
+					SayCommand saycmd = (SayCommand)command;
+					this.broadcastQ.add(new UserMessage(saycmd.getMessage()));
+					
+					break;
+					
+					
+				case TELL:
+					TellCommand tellcmd = (TellCommand)command;
+					
+					target = null;
+					for (UserSock usersock : this.usersocks) {
+						if (tellcmd.getToUsername().equals(usersock.getUser().getUsername())) {
+							target = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (target == null) {
+						Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
 						break;
 					}
-				}
-				
-				String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
-				this.directMessageQ.add(new UserMessage(null, version, user));
-				
-				break;
-				
-				
-			case LOGOUT:
-				LogoutCommand logoutcmd = (LogoutCommand)command;
-				
-				success = false;
-				user = null;
-				for (UserSock usersock : this.usersocks) {
-					if (usersock.getSock() == logoutcmd.getSock()) {
-						user = usersock.getUser();
-						this.usersocks.remove(usersock);
-						Debug.log("User logout successful: " + user + " @ " + usersock.getSock());
-						this.serverUI.log("User logout successful: " + user.getUsername());
-						success = true;
+					
+					//Queue direct message to target user
+					this.directMessageQ.add(new UserMessage(null, tellcmd.getMessage(), target));
+					
+					break;
+					
+					
+				case SPAWN:
+					SpawnCommand spawncmd = (SpawnCommand)command;
+					
+					//Verify target User is logged in
+					target = null;
+					for (UserSock usersock : this.usersocks) {
+						if (spawncmd.getName().equals(usersock.getUser().getUsername())) {
+							target = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (target == null) {
+						Debug.log("Cannot spawn target. No active User with username: " + spawncmd.getName());
 						break;
 					}
-				}
-				
-				if (!success) Debug.log("Failed to logout. Requesting Socket has no active User: " + command.getSock());
-				
-				//Broadcast logout message to all connected clients to update their world state
-				if (user != null) {
-					String message = "\\logout " + user.getUsername();
-					this.broadcastQ.add(new UserMessage(message));
-				}
-				
-				break;
-				
-				
-			case SAY:
-				SayCommand saycmd = (SayCommand)command;
-				
-				user = null;
-				for (UserSock usersock : this.usersocks) {
-					if (saycmd.getSock() == usersock.getSock()) {
-						user = usersock.getUser();
+					
+					//Broadcast spawn message to all connected clients to update their world state
+					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
+					
+					break;
+					
+					
+				case KILL:
+					KillCommand killcmd = (KillCommand)command;
+					
+					//Verify target User is logged in
+					target = null;
+					for (UserSock usersock : this.usersocks) {
+						if (killcmd.getName().equals(usersock.getUser().getUsername())) {
+							target = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (target == null) {
+						Debug.log("Cannot kill target. No active User with username: " + killcmd.getName());
 						break;
 					}
-				}
-				
-				if (user == null) {
-					Debug.log("Failed to broadcast message. Requesting Socket has no active User: " + saycmd.getSock() + " [" + saycmd.getMessage() + "]");
+					
+					//Broadcast spawn message to all connected clients to update their world state
+					this.broadcastQ.add(new UserMessage(killcmd.toCommandString()));
+					
+					break;
+					
+					
+				default:
+					Debug.warn("Invalid or unhandled command type: " + command);
+					Debug.warn(this);
 					break;
 				}
+			}
+			//Client command
+			else {
+				switch (command.getType()) {
+				case ROLLCALL:
+					RollCallCommand rccmd = (RollCallCommand)command;
 					
-				this.broadcastQ.add(new UserMessage(user, saycmd.getMessage()));
+					//Roll call reply recieved, unflag associated UserSock
+					for (UserSock usersock : this.usersocks) {
+						if (usersock.getSock() == rccmd.getSock()) {
+							usersock.setRC(false);
+							break;
+						}
+					}
+					break;
 				
-				break;
-				
-				
-			case TELL:
-				TellCommand tellcmd = (TellCommand)command;
-				
-				user = null;
-				for (UserSock usersock : this.usersocks) {
-					if (tellcmd.getSock() == usersock.getSock()) {
-						user = usersock.getUser();
+				case LOGIN:
+					LoginCommand logincmd = (LoginCommand)command;
+					
+					success = false;
+					user = null;
+					for (User reguser : this.registeredUsers) {
+						if (reguser.getUsername().equals(logincmd.getUsername()) && reguser.hasPassword(logincmd.getPassword())) {
+							Debug.log("User logged in: " + reguser + " @ " + logincmd.getSock());
+							this.serverUI.log("User logged in: " + reguser.getUsername());
+							user = reguser;
+							this.usersocks.add(new UserSock(reguser, logincmd.getSock()));
+							success = true;
+							break;
+						}
+					}
+					
+					if (!success) {
+						Debug.log("Login attempt failed: Incorrect username or password");
+						this.serverUI.log("Login attempt failed: Incorrect username or password");
+						Debug.logv(this.registeredUsers);
+					}
+					
+					//Broadcast login message to all connected clients to update their world state
+					if (user != null) {
+						String message = "\\login " + user.getUsername();
+						this.broadcastQ.add(new UserMessage(message));
+					}
+					
+					//Send direct server message to sender to "login" all currently logged in users
+					for (UserSock usersock : this.usersocks) {
+						//Skip the sending user
+						if (usersock.getSock() == logincmd.getSock()) continue;
+						
+						String message = "\\login " + usersock.getUser().getUsername();
+						this.directMessageQ.add(new UserMessage(message));
+					}
+					
+					break;
+					
+					
+				case VERSION:
+					VersionCommand versioncmd = (VersionCommand)command;
+					
+					//Verify User is logged in
+					user = null;
+					for (UserSock usersock : this.usersocks) {
+						if (usersock.getSock() == versioncmd.getSock()) {
+							user = usersock.getUser();
+							break;
+						}
+					}
+					
+					String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
+					this.directMessageQ.add(new UserMessage(null, version, user));
+					
+					break;
+					
+					
+				case LOGOUT:
+					LogoutCommand logoutcmd = (LogoutCommand)command;
+					
+					success = false;
+					user = null;
+					for (UserSock usersock : this.usersocks) {
+						if (usersock.getSock() == logoutcmd.getSock()) {
+							user = usersock.getUser();
+							this.usersocks.remove(usersock);
+							Debug.log("User logout successful: " + user + " @ " + usersock.getSock());
+							this.serverUI.log("User logout successful: " + user.getUsername());
+							success = true;
+							break;
+						}
+					}
+					
+					if (!success) Debug.log("Failed to logout. Requesting Socket has no active User: " + command.getSock());
+					
+					//Broadcast logout message to all connected clients to update their world state
+					if (user != null) {
+						String message = "\\logout " + user.getUsername();
+						this.broadcastQ.add(new UserMessage(message));
+					}
+					
+					break;
+					
+					
+				case SAY:
+					SayCommand saycmd = (SayCommand)command;
+					
+					//Verify User is logged in
+					user = null;
+					for (UserSock usersock : this.usersocks) {
+						if (saycmd.getSock() == usersock.getSock()) {
+							user = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (user == null) {
+						Debug.log("Failed to broadcast message. Requesting Socket has no active User: " + saycmd.getSock() + " [" + saycmd.getMessage() + "]");
 						break;
 					}
-				}
-				
-				if (user == null) {
-					Debug.log("Failed to send message. Requesting Socket has no active User: " + tellcmd.getSock() + " [" + tellcmd.getMessage() + "]");
+						
+					this.broadcastQ.add(new UserMessage(user, saycmd.getMessage()));
+					
+					break;
+					
+					
+				case TELL:
+					TellCommand tellcmd = (TellCommand)command;
+					
+					//Verify User is logged in
+					user = null;
+					for (UserSock usersock : this.usersocks) {
+						if (tellcmd.getSock() == usersock.getSock()) {
+							user = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (user == null) {
+						Debug.log("Failed to send message. Requesting Socket has no active User: " + tellcmd.getSock() + " [" + tellcmd.getMessage() + "]");
+						break;
+					}
+					
+					target = null;
+					for (UserSock usersock : this.usersocks) {
+						if (tellcmd.getToUsername().equals(usersock.getUser().getUsername())) {
+							target = usersock.getUser();
+							break;
+						}
+					}
+					
+					//Queue direct message to sending user for chat purposes
+					if (user != target) this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), user));
+					
+					if (target == null) {
+						Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
+						break;
+					}
+					
+					//Queue direct message to target user
+					this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), target));
+					
+					break;
+					
+					
+				case MOVE:
+					MoveCommand movecmd = (MoveCommand)command;
+					
+					//Verify User is logged in
+					user = null;
+					for (UserSock usersock : this.usersocks) {
+						if (movecmd.getSock() == usersock.getSock()) {
+							user = usersock.getUser();
+							break;
+						}
+					}
+					
+					//Broadcast move message to all connected clients to update their world state
+					this.broadcastQ.add(new UserMessage(movecmd.toCommandString()));
+					
+					break;
+					
+					
+				case SPAWN:
+					SpawnCommand spawncmd = (SpawnCommand)command;
+					
+					//Verify target User is logged in
+					target = null;
+					for (UserSock usersock : this.usersocks) {
+						if (spawncmd.getName().equals(usersock.getUser().getUsername())) {
+							target = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (target == null) {
+						Debug.log("Cannot spawn target. No active User with username: " + spawncmd.getName());
+						break;
+					}
+					
+					//Broadcast spawn message to all connected clients to update their world state
+					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
+					
+					break;
+					
+				case KILL:
+					KillCommand killcmd = (KillCommand)command;
+					
+					//Verify target User is logged in
+					target = null;
+					for (UserSock usersock : this.usersocks) {
+						if (killcmd.getName().equals(usersock.getUser().getUsername())) {
+							target = usersock.getUser();
+							break;
+						}
+					}
+					
+					if (target == null) {
+						Debug.log("Cannot kill target. No active User with username: " + killcmd.getName());
+						break;
+					}
+					
+					//Broadcast spawn message to all connected clients to update their world state
+					this.broadcastQ.add(new UserMessage(killcmd.toCommandString()));
+					
+					break;
+					
+				default:
+					Debug.warn("Invalid or unhandled command type: " + command);
+					Debug.warn(this);
 					break;
 				}
-				
-				//Queue direct message to sending user for chat purposes
-				this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), user));
-				
-				target = null;
-				for (UserSock usersock : this.usersocks) {
-					if (tellcmd.getToUsername().equals(usersock.getUser().getUsername())) {
-						target = usersock.getUser();
-						break;
-					}
-				}
-				
-				if (target == null) {
-					Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
-					break;
-				}
-				
-				//Queue direct message to target user
-				this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), target));
-				
-				break;
-				
-				
-			case MOVE:
-				MoveCommand movecmd = (MoveCommand)command;
-				
-				user = null;
-				for (UserSock usersock : this.usersocks) {
-					if (movecmd.getSock() == usersock.getSock()) {
-						user = usersock.getUser();
-						break;
-					}
-				}
-				
-				//Broadcast move message to all connected clients to update their world state
-				
-				String moveMessage = "\\move " + movecmd.getName() + " " + movecmd.getMoveVector().x + "," + movecmd.getMoveVector().y + "," + movecmd.getMoveVector().z + "," + movecmd.getFacing() + "," + movecmd.getDeltaTime();
-				
-				this.broadcastQ.add(new UserMessage(null, moveMessage));
-				
-				break;
-				
-				
-			case SPAWN:
-				SpawnCommand spawncmd = (SpawnCommand)command;
-				
-				for (UserSock usersock : this.usersocks) {
-					
-				}
-				
-				break;
-				
-			case KILL:
-				KillCommand killcmd = (KillCommand)command;
-				
-				//Check to see if User is logged in
-				for (UserSock usersock : this.usersocks) {
-					if (usersock.getUser().getUsername().equals(killcmd.getName())) {
-						//Broadcast kill command
-					}
-				}
-				
-				break;
-				
-			default:
-				Debug.warn("Invalid or unhandled command type: " + command);
-				Debug.warn(this);
-				break;
 			}
 		}
 		
@@ -677,9 +884,13 @@ public class Server implements ILoggable {
 			}
 			
 		}
+		//Otherwise, send only to specified Socket
 		else {
-			Debug.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
-			this.serverUI.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+			//Mute RollCall commands (they clutter up output)
+			if (!usermessage.getMessage().contains("\\rc")) {
+				Debug.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+				this.serverUI.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+			}
 			write(sock, "[" + sender + "] " + usermessage.getMessage());
 		}
 	}

@@ -10,7 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
-import ph.games.scg.game.Core;
+import ph.games.scg.game.GameCore;
 import ph.games.scg.screen.GameScreen;
 import ph.games.scg.util.Assets;
 import ph.games.scg.util.Settings;
@@ -72,7 +72,7 @@ public class PauseWidget extends Actor {
 			
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
-				Core.setActiveScreen(new GameScreen());
+				GameCore.setActiveScreen(new GameScreen());
 			}
 			
 		});
@@ -104,8 +104,8 @@ public class PauseWidget extends Actor {
 	public void setPosition(float x, float y) {
 		super.setPosition(x, y);
 		this.window.setPosition(
-			(Core.VIRTUAL_WIDTH  - this.window.getWidth() )/2f,
-			(Core.VIRTUAL_HEIGHT - this.window.getHeight())/2f
+			(GameCore.VIRTUAL_WIDTH  - this.window.getWidth() )/2f,
+			(GameCore.VIRTUAL_HEIGHT - this.window.getHeight())/2f
 		);
 	}
 	
