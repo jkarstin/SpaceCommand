@@ -20,19 +20,15 @@ import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
 
-import com.badlogic.gdx.math.Vector3;
-
 import ph.games.scg.server.command.AttackCommand;
 import ph.games.scg.server.command.Command;
 import ph.games.scg.server.command.Command.CMD_TYP;
 import ph.games.scg.server.command.DamageCommand;
-import ph.games.scg.server.command.KillCommand;
 import ph.games.scg.server.command.LoginCommand;
 import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
 import ph.games.scg.server.command.RollCallCommand;
 import ph.games.scg.server.command.SayCommand;
-import ph.games.scg.server.command.SpawnCommand;
 import ph.games.scg.server.command.TellCommand;
 import ph.games.scg.server.command.VersionCommand;
 import ph.games.scg.util.Debug;
@@ -40,14 +36,11 @@ import ph.games.scg.util.ILoggable;
 
 public class Server implements ILoggable {
 	
-	
-	//TODO: Add functionality to do a regular "Roll Call" to make sure connected client Sockets are still active. If any closed, remove associated Users
-	
-	
 	public static final String SERVER_IP = "192.168.1.2";
 	public static final int SERVER_PORT = 21595;
 	private static final int SO_TIMEOUT = 50;
-	private static final float ROLL_CALL_PERIOD = 1f;
+	private static final float ROLL_CALL_FREQUENCY = 1f;
+	private static final float SEND_FREQUENCY = 2.4f;
 	
 	private static final int BYTE_BUFFER_SIZE = 64;
 	private static final int VERSION_LO = 4;
@@ -64,9 +57,8 @@ public class Server implements ILoggable {
 	private boolean opened;
 	//Number of seconds since server was opened
 	private float uptime;
+	private float sendTimer;
 	private float rollCallTimer;
-	//Number of milliseconds the server will attempt to look for clients before stopping
-	private int soTimeout;
 	
 	//Message reading
 	private byte[] buff;
@@ -92,6 +84,9 @@ public class Server implements ILoggable {
 	//Close Queue
 	private ArrayList<UserSock> closeQ;
 	
+//	//Server-side engine for processing NetEntity state simulation
+//	private Engine servEngine;
+	
 	public Server(int port) {
 		this.serverUI = null;
 		
@@ -99,6 +94,7 @@ public class Server implements ILoggable {
 		this.port = port;
 		this.opened = false;
 		this.uptime = 0f;
+		this.sendTimer = 0f;
 		this.rollCallTimer = 0f;
 		
 		this.buff = new byte[BYTE_BUFFER_SIZE];
@@ -107,6 +103,7 @@ public class Server implements ILoggable {
 		this.sockSegments = new ArrayList<SockSegment>();
 		this.stoker = null;
 		
+		//TODO: Make a more secure way of storing usernames and passwords. This is just negligence... :/
 		this.registeredUsers = new ArrayList<User>();
 		this.registeredUsers.add(new User("phrongorre", "pancakes99"));
 		this.registeredUsers.add(new User("roger", "foneybaloney"));
@@ -119,6 +116,9 @@ public class Server implements ILoggable {
 		this.directMessageQ = new ArrayList<UserMessage>();
 		this.broadcastQ = new ArrayList<UserMessage>();
 		this.closeQ = new ArrayList<UserSock>();
+		
+//		this.servEngine = new Engine();
+//		this.servEngine.addSystem(new NetEntitySystem());
 	}
 	
 	public void open() {
@@ -142,8 +142,13 @@ public class Server implements ILoggable {
 		if (!this.isOpen()) return;
 		
 		this.uptime += dt;
+		this.sendTimer += dt;
 		this.rollCallTimer += dt;
 		Debug.logv("Server uptime: " + this.uptime + " s");
+		
+//		//Cycle the engine
+//		this.servEngine.update(dt);
+		
 		//Poll clients for roll call
 		this.rollCall();
 		//Close queued UserSocks
@@ -167,33 +172,33 @@ public class Server implements ILoggable {
 	}
 	
 	private void rollCall() {
-		if (this.rollCallTimer >= ROLL_CALL_PERIOD) {
-			this.rollCallTimer -= ROLL_CALL_PERIOD;
-			
-			//Logout and close any UserSocks still flagged from last Roll Call
-			for (UserSock usersock : this.usersocks) {
-				if (usersock.getRC()) {
-					Debug.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
-					this.serverUI.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
-					
-					LogoutCommand logoutcmd = new LogoutCommand(usersock.getUser().getName());
-					this.commandQ.add(logoutcmd);
-					
-					//Queue socket for closing
-					this.closeQ.add(usersock);
-				}
+		if (this.rollCallTimer < 1f/ROLL_CALL_FREQUENCY) return;
+		
+		this.rollCallTimer -= 1f/ROLL_CALL_FREQUENCY;
+		
+		//Logout and close any UserSocks still flagged from last Roll Call
+		for (UserSock usersock : this.usersocks) {
+			if (usersock.getRC()) {
+				Debug.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
+				this.serverUI.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
+				
+				LogoutCommand logoutcmd = new LogoutCommand(usersock.getUser().getName());
+				this.commandQ.add(logoutcmd);
+				
+				//Queue socket for closing
+				this.closeQ.add(usersock);
 			}
-			
-			//Flag remaining UserSocks for next Roll Call
-			final String rc = "\\rc";
-			UserMessage rollCallMessage;
-			
-			//Check to ensure all UserSock objects are still active
-			for (UserSock usersock : this.usersocks) {
-				usersock.setRC(true);
-				rollCallMessage = new UserMessage(null, rc, usersock.getUser());
-				this.write(rollCallMessage);
-			}
+		}
+		
+		//Flag remaining UserSocks for next Roll Call
+		final String rc = "\\rc";
+		UserMessage rollCallMessage;
+		
+		//Check to ensure all UserSock objects are still active
+		for (UserSock usersock : this.usersocks) {
+			usersock.setRC(true);
+			rollCallMessage = new UserMessage(null, rc, usersock.getUser());
+			this.write(rollCallMessage);
 		}
 	}
 	
@@ -232,7 +237,7 @@ public class Server implements ILoggable {
 			String target = "";
 			String message = "";
 			float amount = 0f;
-			float x=0f, y=0f, z=0f;
+//			float x=0f, y=0f, z=0f;
 			while ((token = pullToken()) != null) {
 				switch (token) {
 				case "\\version":
@@ -957,6 +962,10 @@ public class Server implements ILoggable {
 	
 	private void sendMessages() {
 		if (!this.isOpen()) return;
+		
+		if (this.sendTimer < 1f/SEND_FREQUENCY) return;
+		
+		this.sendTimer -= 1f/SEND_FREQUENCY;
 		
 		//Send Direct Messages
 		for (UserMessage usermessage : this.directMessageQ) write(usermessage);

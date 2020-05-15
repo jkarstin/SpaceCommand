@@ -15,6 +15,7 @@ public class DamageCommand extends Command {
 		this.target = target;
 		this.amount = amount;
 	}
+	public DamageCommand(String name, String target, String amountString) { this(null, name, target, Float.valueOf(amountString)); }
 	
 	public String getName() {
 		return this.name;

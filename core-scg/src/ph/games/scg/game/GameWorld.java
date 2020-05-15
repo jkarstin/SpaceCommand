@@ -1,7 +1,5 @@
 package ph.games.scg.game;
 
-import java.util.ArrayList;
-
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.gdx.Gdx;
@@ -14,21 +12,17 @@ import com.badlogic.gdx.utils.JsonReader;
 import com.badlogic.gdx.utils.JsonValue;
 
 import ph.games.scg.component.CharacterComponent;
-import ph.games.scg.component.ModelComponent;
-import ph.games.scg.component.UserEntityComponent;
 import ph.games.scg.environment.Room;
 import ph.games.scg.environment.Room.Quad;
-import ph.games.scg.server.User;
 import ph.games.scg.system.BulletSystem;
 import ph.games.scg.system.EnemySystem;
+import ph.games.scg.system.NetEntitySystem;
 import ph.games.scg.system.PlayerSystem;
 import ph.games.scg.system.RenderSystem;
 import ph.games.scg.system.StatusSystem;
-import ph.games.scg.system.UserEntitySystem;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.EntityFactory;
-import ph.games.scg.util.ILoggable;
 import ph.games.scg.util.Settings;
 
 public class GameWorld {
@@ -45,7 +39,7 @@ public class GameWorld {
 //	private StatusSystem statusSystem;
 	private RenderSystem renderSystem;
 	
-	private ArrayList<UserEntity> userEntities;
+//	private ArrayList<NetEntity> netEntities;
 
 	public GameWorld(GameUI gameUI) {
 		Bullet.init(); //Load in Bullet.dll
@@ -54,7 +48,7 @@ public class GameWorld {
 
 		initWorld(gameUI);
 		
-		this.userEntities = new ArrayList<UserEntity>();
+//		this.netEntities = new ArrayList<NetEntity>();
 		
 		addSystems();
 		
@@ -63,9 +57,9 @@ public class GameWorld {
 		addEntities();
 	}
 	
-	public ArrayList<UserEntity> getUserEntities() {
-		return this.userEntities;
-	}
+//	public ArrayList<NetEntity> getNetEntities() {
+//		return this.netEntities;
+//	}
 	
 	private void setDebug() {
 		if (Debug.isOn()) {
@@ -84,9 +78,10 @@ public class GameWorld {
 		this.engine.addSystem(this.bulletSystem = new BulletSystem());
 		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI));
 		
-		this.engine.addSystem(/* this.userEntitySystem = */ new UserEntitySystem());
 		this.engine.addSystem(/* this.enemySystem = */ new EnemySystem(this.bulletSystem));
 		this.engine.addSystem(/* this.statusSystem = */ new StatusSystem(this));
+		
+		this.engine.addSystem(new NetEntitySystem(this.bulletSystem));
 		
 		if (Debug.isOn()) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
 	}
@@ -323,68 +318,31 @@ public class GameWorld {
 		}
 	}
 	
-	public void spawnUserEntity(String username, Vector3 position) {
-		UserEntity userEntity = new UserEntity(new User(username), EntityFactory.createUserEntity(this.bulletSystem, 10f, 16f, 18f));
-		this.engine.addEntity(userEntity.getEntity());
-		this.userEntities.add(userEntity);
-	}
-	
-	public void updateUserEntity(String username, Vector3 moveVector, float facing, float deltaTime) {
-		Entity entity = null;
-		for (UserEntity userEntity : this.userEntities) {
-			if (userEntity.getUser().getName().equals(username)) {
-				entity = userEntity.getEntity();
-				break;
-			}
-		}
-		
-		if (entity != null) {
-			UserEntityComponent uec = entity.getComponent(UserEntityComponent.class);
-			if (uec == null) Debug.warn("Entity does not have a UserEntityComponent");
-			else {
-				Debug.log("Queueing movement data... " + moveVector + "," + facing + "," + deltaTime);
-				uec.queuedMovement.add(moveVector);
-				uec.queuedFacing.add(facing);
-				uec.queuedDeltaTime.add(deltaTime);
-			}
-		}
-	}
-	
-	public void killUserEntity(String username) {
-		for (UserEntity userEntity : this.userEntities) {
-			if (userEntity.getUser().getName().equals(username)) {
-				this.remove(userEntity.getEntity());
-				this.userEntities.remove(userEntity);
-				break;
-			}
-		}
-	}
-	
-	//Link between a User instance and their GameWorld representation
-	public static class UserEntity implements ILoggable {
-		
-		private User user;
-		private Entity entity;
-		
-		public UserEntity(User user, Entity entity) {
-			this.user = user;
-			this.entity = entity;
-		}
-		
-		public User getUser() {
-			return this.user;
-		}
-		
-		public Entity getEntity() {
-			return this.entity;
-		}
-		
-		@Override
-		public String toString() {
-			String str = "USER_ENTITY{user=" + this.user + " entity=" + this.entity + "}";
-			return str;
-		}
-		
-	}
+//	//Link between a User instance and their GameWorld representation
+//	public static class UserEntity implements ILoggable {
+//		
+//		private User user;
+//		private Entity entity;
+//		
+//		public UserEntity(User user, Entity entity) {
+//			this.user = user;
+//			this.entity = entity;
+//		}
+//		
+//		public User getUser() {
+//			return this.user;
+//		}
+//		
+//		public Entity getEntity() {
+//			return this.entity;
+//		}
+//		
+//		@Override
+//		public String toString() {
+//			String str = "USER_ENTITY{user=" + this.user + " entity=" + this.entity + "}";
+//			return str;
+//		}
+//		
+//	}
 	
 }

@@ -36,8 +36,9 @@ public class BulletSystem extends EntitySystem implements EntityListener {
 	private btGhostPairCallback ghostPairCallback;
 
 	public BulletSystem() {
-		PlayerEnemyContactListener peContactListener = new PlayerEnemyContactListener();
-		peContactListener.enable();
+		//TODO: THIS CURRENTLY BREAKS THE GAME WHEN MULTIPLE USERS PLAY AT ONCE...
+//		PlayerEnemyContactListener peContactListener = new PlayerEnemyContactListener();
+//		peContactListener.enable();
 		
 		this.collisionConfiguration = new btDefaultCollisionConfiguration();
 		this.dispatcher = new btCollisionDispatcher(this.collisionConfiguration);

@@ -10,14 +10,15 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
 
 import ph.games.scg.game.GameWorld;
+import ph.games.scg.server.command.AttackCommand;
 import ph.games.scg.server.command.Command;
-import ph.games.scg.server.command.KillCommand;
+import ph.games.scg.server.command.Command.CMD_TYP;
+import ph.games.scg.server.command.DamageCommand;
 import ph.games.scg.server.command.LoginCommand;
 import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
 import ph.games.scg.server.command.RollCallCommand;
-import ph.games.scg.server.command.SpawnCommand;
-import ph.games.scg.server.command.Command.CMD_TYP;
+import ph.games.scg.system.NetEntitySystem;
 import ph.games.scg.ui.ChatWidget;
 import ph.games.scg.util.Debug;
 
@@ -25,7 +26,7 @@ public class Client implements Disposable {
 
 	private static final int BYTE_BUFFER_SIZE = 64;
 	private static final int DEFAULT_SO_TIMEOUT = 50;
-	private static final float SEND_FREQUENCY = 0.33f;
+	private static final float SEND_FREQUENCY = 2.4f;
 	
 	private User user;
 	private Socket sock;
@@ -39,8 +40,10 @@ public class Client implements Disposable {
 	private GameWorld gameWorld;
 	private ChatWidget chatWidget;
 	private float timer;
-	private ArrayList<Command> outgoingCommands;
+	private ArrayList<Command> outboundCommands;
 	private ArrayList<Command> commandsFromServer;
+	
+	private NetEntitySystem NES;
 	
 	public Client(String serverIP, int serverPort, int timeout) {
 		this.gameWorld = null;
@@ -55,7 +58,7 @@ public class Client implements Disposable {
 		this.opened = false;
 		
 		this.timer = 0f;
-		this.outgoingCommands = new ArrayList<Command>();
+		this.outboundCommands = new ArrayList<Command>();
 		this.commandsFromServer = new ArrayList<Command>();
 		
 		this.open(serverIP, serverPort);
@@ -68,6 +71,42 @@ public class Client implements Disposable {
 	
 	public void setChatWidget(ChatWidget chatWidget) {
 		this.chatWidget = chatWidget;
+	}
+	
+	public void setNetEntitySystem(NetEntitySystem NES) {
+		this.NES = NES;
+	}
+	
+	public void login(String username, String password) {
+		if (!this.isOpen()) return;
+		
+		this.user = new User(username, password);
+		this.outboundCommands.add(new LoginCommand(username, password));
+	}
+	
+	public void logout() {
+		if (!this.isOpen()) return;
+		
+		this.user = null;
+		this.outboundCommands.add(new LogoutCommand());
+	}
+	
+	public void move(String name, Vector3 movement, float facing, float dt) {
+		if (!this.isOpen() || this.user == null) return;
+
+		this.outboundCommands.add(new MoveCommand(name, movement, facing, dt));
+	}
+	
+	public void move(Vector3 movement, float facing, float dt) {
+		if (!this.isOpen() || this.user == null) return;
+		
+		this.move(this.user.getName(), movement, facing, dt);
+	}
+	
+	public void attack(String target) {
+		if (!this.isOpen() || this.user == null) return;
+		
+		this.outboundCommands.add(new AttackCommand(this.sock, this.user.getName(), target));
 	}
 	
 	//Open a new Socket at specified address and port
@@ -165,33 +204,11 @@ public class Client implements Disposable {
 		else this.outboundMessages.add("\\say " + message);
 	}
 	
-	public void login(String username, String password) {
-		if (!this.isOpen()) return;
-		
-		this.user = new User(username, password);
-		this.outgoingCommands.add(new LoginCommand(username, password));
-	}
-	
-	public void logout() {
-		if (!this.isOpen()) return;
-		
-		this.user = null;
-		this.outgoingCommands.add(new LogoutCommand());
-	}
-	
-	public void move(Vector3 movement, float facing, float dt) {
-		if (!this.isOpen()) return;
-		
-		if (this.user != null) {
-			this.outgoingCommands.add(new MoveCommand(this.user.getName(), movement, facing, dt));
-		}
-	}
-	
 	public void update(float dt) {
 		this.timer += dt;
-		if (this.timer >= SEND_FREQUENCY) {
+		if (this.timer >= 1f/SEND_FREQUENCY) {
 			this.sendCommands();
-			this.timer -= SEND_FREQUENCY;
+			this.timer -= 1f/SEND_FREQUENCY;
 		}
 		this.readMessages();
 		this.executeServerCommands();
@@ -204,9 +221,10 @@ public class Client implements Disposable {
 	
 	private void sendCommands() {
 		
+		//Condense all \move commands into as few \move commands as possible
 		ArrayList<MoveCommand> condensedMoves = new ArrayList<MoveCommand>();
 		
-		for (Command command : this.outgoingCommands) {
+		for (Command command : this.outboundCommands) {
 			switch (command.getType()) {
 			case MOVE:
 				MoveCommand movecmd = (MoveCommand)command;
@@ -231,7 +249,7 @@ public class Client implements Disposable {
 			this.write(cmd.toCommandString());
 		}
 		
-		this.outgoingCommands.clear();
+		this.outboundCommands.clear();
 		
 		//Send outbound messages
 		this.write(this.outboundMessages);
@@ -276,6 +294,7 @@ public class Client implements Disposable {
 			case "[SERVER]":
 				switch (tokens[1]) {
 				case "\\rc":
+					//RollCall request, relay back to Server
 					this.commandsFromServer.add(new RollCallCommand(this.sock, null));
 					deQMessages.add(message);
 					break;
@@ -298,17 +317,23 @@ public class Client implements Disposable {
 					deQMessages.add(message);
 					break;
 					
-				case "\\spawn":
-					//Spawn command relayed, apply to target UserEntity
-					this.commandsFromServer.add(new SpawnCommand(tokens[2], tokens[3]));
+				case "\\damage":
+					//Damage command relayed, apply damage to target UserEntity
+					this.commandsFromServer.add(new DamageCommand(tokens[2], tokens[3], tokens[4]));
 					deQMessages.add(message);
 					break;
 					
-				case "\\kill":
-					//Kill command relayed, apply to target UserEntity
-					this.commandsFromServer.add(new KillCommand(tokens[2]));
-					deQMessages.add(message);
-					break;
+//				case "\\spawn":
+//					//Spawn command relayed, apply to target UserEntity
+//					this.commandsFromServer.add(new SpawnCommand(tokens[2], tokens[3]));
+//					deQMessages.add(message);
+//					break;
+//					
+//				case "\\kill":
+//					//Kill command relayed, apply to target UserEntity
+//					this.commandsFromServer.add(new KillCommand(tokens[2]));
+//					deQMessages.add(message);
+//					break;
 					
 				default:
 					//Leave server message alone
@@ -338,7 +363,7 @@ public class Client implements Disposable {
 			switch (command.getType()) {
 			case ROLLCALL:
 				//Relay roll call command back to server to confirm
-				this.outgoingCommands.add(command);
+				this.outboundCommands.add(command);
 				
 				break;
 			
@@ -347,7 +372,7 @@ public class Client implements Disposable {
 				
 				if (!this.user.getName().equals(logincmd.getUsername())) {
 					//Add new UserEntity to GameWorld
-					this.gameWorld.spawnUserEntity(logincmd.getUsername(), new Vector3(10f, 14f, 21f));
+					this.NES.spawnNetEntity(logincmd.getUsername(), new Vector3(10f, 20f, 21f));
 				}
 				
 				break;
@@ -356,8 +381,8 @@ public class Client implements Disposable {
 				LogoutCommand logoutcmd = (LogoutCommand)command;
 				
 				if (!this.user.getName().equals(logoutcmd.getUsername())) {
-					//Remove UserEntity from GameWorld
-					this.gameWorld.killUserEntity(logoutcmd.getUsername());
+					//Remove NetEntity from GameWorld
+					this.NES.killNetEntity(logoutcmd.getUsername());
 				}
 				
 				break;
@@ -365,23 +390,38 @@ public class Client implements Disposable {
 			case MOVE:
 				MoveCommand movecmd = (MoveCommand)command;
 				
-				this.gameWorld.updateUserEntity(movecmd.getName(), movecmd.getMoveVector(), movecmd.getFacing(), movecmd.getDeltaTime());
-				
-				break;
-			
-			case SPAWN:
-				SpawnCommand spawncmd = (SpawnCommand)command;
-				
-				if (!this.user.getName().equals(spawncmd.getName())) {
-					this.gameWorld.spawnUserEntity(spawncmd.getName(), spawncmd.getPosition());
+				if (!this.user.getName().equals(movecmd.getName())) {
+					//Update NetEntity
+					this.NES.updateNetEntity(movecmd.getName(), movecmd.getMoveVector(), movecmd.getFacing(), movecmd.getDeltaTime());
 				}
 				
 				break;
+			
+//			case SPAWN:
+//				SpawnCommand spawncmd = (SpawnCommand)command;
+//				
+//				if (!this.user.getName().equals(spawncmd.getName())) {
+//					this.gameWorld.spawnUserEntity(spawncmd.getName(), spawncmd.getPosition());
+//				}
+//				
+//				break;
+//				
+//			case KILL:
+//				KillCommand killcmd = (KillCommand)command;
+//				
+//				this.gameWorld.killUserEntity(killcmd.getName());
+//				
+//				break;
 				
-			case KILL:
-				KillCommand killcmd = (KillCommand)command;
+			case DAMAGE:
+				DamageCommand damagecmd = (DamageCommand)command;
 				
-				this.gameWorld.killUserEntity(killcmd.getName());
+				NetEntity deadNentity = this.NES.applyDamage(damagecmd.getName(), damagecmd.getTarget(), damagecmd.getAmount());
+				
+				if (deadNentity == null) break;
+				
+				//We have a dead nentity on our hands...
+				
 				
 				break;
 				

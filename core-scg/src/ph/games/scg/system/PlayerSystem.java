@@ -16,12 +16,11 @@ import com.badlogic.gdx.physics.bullet.collision.ClosestRayResultCallback;
 import ph.games.scg.component.AnimationComponent;
 import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.ModelComponent;
+import ph.games.scg.component.NetEntityComponent;
 import ph.games.scg.component.PlayerComponent;
-import ph.games.scg.component.StatusComponent;
 import ph.games.scg.game.GameCore;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Debug;
-import ph.games.scg.util.Settings;
 
 public class PlayerSystem extends EntitySystem implements EntityListener {
 
@@ -96,24 +95,20 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		if (Gdx.input.isKeyPressed(Input.Keys.W)) {
 			movement.add(this.camera.direction);
 			recordMovement = true;
-		//         this.characterComponent.walkDirection.add(this.camera.direction);
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.S)) {
 			movement.sub(this.camera.direction);
 			recordMovement = true;
-		//         this.characterComponent.walkDirection.sub(this.camera.direction);
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.A)) {
 			movement.sub(tmp.set(this.camera.direction).crs(this.camera.up));
 //			rotation += this.turnSpeed;
 			recordMovement = true;
-		//         this.camera.rotate(this.camera.up, this.turnSpeed);
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.D)) {
 			movement.add(tmp.set(this.camera.direction).crs(this.camera.up));
 //			rotation -= this.turnSpeed;
 			recordMovement = true;
-		//         this.camera.rotate(this.camera.up, -this.turnSpeed);
 		}
 //		if (Gdx.input.isKeyPressed(Input.Keys.PAGE_UP)) {
 //			tmp.set(this.camera.direction).crs(this.camera.up).nor();
@@ -168,12 +163,14 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		if (rayTestCB.hasHit()) {
 			final Entity hitEntity = (Entity)(rayTestCB.getCollisionObject().userData);
 			
-			StatusComponent scomp = hitEntity.getComponent(StatusComponent.class);
-			if (scomp != null) {
+			NetEntityComponent nec = hitEntity.getComponent(NetEntityComponent.class);
+			if (nec != null) {
 				//We hit one, boys!
-				Debug.log("Entity hit: " + scomp);
-		             scomp.setAlive(false);
-		             PlayerComponent.score += 100;
+				Debug.log("NetEntity hit: " + nec.netName);
+				
+				GameCore.client.attack(nec.netName);
+//		             scomp.setAlive(false);
+//		             PlayerComponent.score += 100;
 			}
 			
 		}

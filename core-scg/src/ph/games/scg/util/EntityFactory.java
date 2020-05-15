@@ -36,9 +36,10 @@ import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.EnemyComponent;
 import ph.games.scg.component.GunComponent;
 import ph.games.scg.component.ModelComponent;
+import ph.games.scg.component.NetEntityComponent;
 import ph.games.scg.component.PlayerComponent;
 import ph.games.scg.component.StatusComponent;
-import ph.games.scg.component.UserEntityComponent;
+import ph.games.scg.component.UserComponent;
 import ph.games.scg.environment.Room.Quad;
 import ph.games.scg.system.BulletSystem;
 
@@ -246,7 +247,7 @@ public class EntityFactory {
 		return gunEntity;
 	}
 
-	public static Entity createEnemy(BulletSystem bulletSystem, float x, float y, float z) {
+	public static Entity createEnemy(BulletSystem bulletSystem, String name, float x, float y, float z) {
 		Entity entity = new Entity();
 
 		if (enemyModel == null) {
@@ -276,6 +277,10 @@ public class EntityFactory {
 		entity.add(animationComponent);
 
 		entity.add(new StatusComponent(animationComponent));
+		
+		NetEntityComponent necomp = new NetEntityComponent();
+		necomp.netName = name;
+		entity.add(necomp);
 
 		return entity;
 	}
@@ -316,9 +321,17 @@ public class EntityFactory {
 		return characterComponent;
 	}
 
-	public static Entity createUserEntity(BulletSystem bulletSystem, float x, float y, float z) {
+//	public static Entity createUserEntity(BulletSystem bulletSystem, String name, float x, float y, float z) {
+//		Entity entity = EntityFactory.createCharacter(bulletSystem, x, y, z);
+//		entity.add(new UserComponent());
+//		return entity;
+//	}
+
+	public static Entity createNetEntity(BulletSystem bulletSystem, String name, float x, float y, float z) {
 		Entity entity = EntityFactory.createCharacter(bulletSystem, x, y, z);
-		entity.add(new UserEntityComponent());
+		NetEntityComponent necomp = new NetEntityComponent();
+		necomp.netName = name;
+		entity.add(necomp);
 		return entity;
 	}
 
