@@ -183,7 +183,7 @@ public class Client implements Disposable {
 		if (!this.isOpen()) return;
 		
 		if (this.user != null) {
-			this.outgoingCommands.add(new MoveCommand(this.user.getUsername(), movement, facing, dt));
+			this.outgoingCommands.add(new MoveCommand(this.user.getName(), movement, facing, dt));
 		}
 	}
 	
@@ -345,9 +345,9 @@ public class Client implements Disposable {
 			case LOGIN:
 				LoginCommand logincmd = (LoginCommand)command;
 				
-				if (!this.user.getUsername().equals(logincmd.getUsername())) {
+				if (!this.user.getName().equals(logincmd.getUsername())) {
 					//Add new UserEntity to GameWorld
-					this.gameWorld.addUserEntity(logincmd.getUsername());
+					this.gameWorld.spawnUserEntity(logincmd.getUsername(), new Vector3(10f, 14f, 21f));
 				}
 				
 				break;
@@ -355,9 +355,9 @@ public class Client implements Disposable {
 			case LOGOUT:
 				LogoutCommand logoutcmd = (LogoutCommand)command;
 				
-				if (!this.user.getUsername().equals(logoutcmd.getUsername())) {
+				if (!this.user.getName().equals(logoutcmd.getUsername())) {
 					//Remove UserEntity from GameWorld
-					this.gameWorld.removeUserEntity(logoutcmd.getUsername());
+					this.gameWorld.killUserEntity(logoutcmd.getUsername());
 				}
 				
 				break;
@@ -372,7 +372,9 @@ public class Client implements Disposable {
 			case SPAWN:
 				SpawnCommand spawncmd = (SpawnCommand)command;
 				
-				this.gameWorld.spawnUserEntity(spawncmd.getName(), spawncmd.getPosition());
+				if (!this.user.getName().equals(spawncmd.getName())) {
+					this.gameWorld.spawnUserEntity(spawncmd.getName(), spawncmd.getPosition());
+				}
 				
 				break;
 				

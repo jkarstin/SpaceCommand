@@ -22,7 +22,10 @@ import java.util.StringTokenizer;
 
 import com.badlogic.gdx.math.Vector3;
 
+import ph.games.scg.server.command.AttackCommand;
 import ph.games.scg.server.command.Command;
+import ph.games.scg.server.command.Command.CMD_TYP;
+import ph.games.scg.server.command.DamageCommand;
 import ph.games.scg.server.command.KillCommand;
 import ph.games.scg.server.command.LoginCommand;
 import ph.games.scg.server.command.LogoutCommand;
@@ -32,7 +35,6 @@ import ph.games.scg.server.command.SayCommand;
 import ph.games.scg.server.command.SpawnCommand;
 import ph.games.scg.server.command.TellCommand;
 import ph.games.scg.server.command.VersionCommand;
-import ph.games.scg.server.command.Command.CMD_TYP;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.ILoggable;
 
@@ -73,12 +75,14 @@ public class Server implements ILoggable {
 	private ArrayList<SockSegment> sockSegments;
 	private StringTokenizer stoker;
 	
-	//User ArrayList
+	//Registered Users ArrayList
 	private ArrayList<User> registeredUsers;
 	//Client ArrayList
 	private ArrayList<Socket> socks;
 	//UserSock ArrayList
 	private ArrayList<UserSock> usersocks;
+	//NetworkEntity ArrayList
+	private ArrayList<NetEntity> netEntities;
 	//Command Queue
 	private ArrayList<Command> commandQ;
 	//Direct Message Queue
@@ -109,6 +113,8 @@ public class Server implements ILoggable {
 		
 		this.socks = new ArrayList<Socket>();
 		this.usersocks = new ArrayList<UserSock>();
+		this.netEntities = new ArrayList<NetEntity>();
+		
 		this.commandQ = new ArrayList<Command>();
 		this.directMessageQ = new ArrayList<UserMessage>();
 		this.broadcastQ = new ArrayList<UserMessage>();
@@ -170,7 +176,7 @@ public class Server implements ILoggable {
 					Debug.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
 					this.serverUI.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
 					
-					LogoutCommand logoutcmd = new LogoutCommand(usersock.getUser().getUsername());
+					LogoutCommand logoutcmd = new LogoutCommand(usersock.getUser().getName());
 					this.commandQ.add(logoutcmd);
 					
 					//Queue socket for closing
@@ -223,7 +229,9 @@ public class Server implements ILoggable {
 			String token;
 			
 			String name = "";
+			String target = "";
 			String message = "";
+			float amount = 0f;
 			float x=0f, y=0f, z=0f;
 			while ((token = pullToken()) != null) {
 				switch (token) {
@@ -250,39 +258,86 @@ public class Server implements ILoggable {
 					}
 					break;
 					
-				case "\\spawn":
+//				case "\\spawn":
+//					name = pullToken();
+//					
+//					if (name == null) {
+//						Debug.warn("Invalid use of \\spawn command. Requires name value");
+//						break;
+//					}
+//					
+//					message = pullToken();
+//					if (message == null) {
+//						Debug.warn("Invalid use of \\spawn command. Requires movement values");
+//						break;
+//					}
+//					
+//					String[] spawnData = message.split(",");
+//					
+//					x = Float.valueOf(spawnData[0]);
+//					y = Float.valueOf(spawnData[1]);
+//					z = Float.valueOf(spawnData[2]);
+//					
+//					this.commandQ.add(new SpawnCommand(null, name, new Vector3(x, y, z)));
+//					
+//					break;
+//					
+//				case "\\kill":
+//					name = pullToken();
+//					
+//					if (name == null) {
+//						Debug.warn("Invalid use of \\kill command. Requires name value");
+//						break;
+//					}
+//					
+//					this.commandQ.add(new KillCommand(null, name));
+//					
+//					break;
+					
+				case "\\attack":
 					name = pullToken();
 					
 					if (name == null) {
-						Debug.warn("Invalid use of \\spawn command. Requires name value");
+						Debug.warn("Invalid use of \\attack command. Requires name value");
+						break;
+					}
+					
+					target = pullToken();
+					
+					if (target == null) {
+						Debug.warn("Invalid use of \\attack command. Requires target value");
+						break;
+					}
+					
+					this.commandQ.add(new AttackCommand(null, name, target));
+					
+					break;
+				
+				case "\\damage":
+					name = pullToken();
+					
+					if (name == null) {
+						Debug.warn("Invalid use of \\damage command. Requires name value");
+						break;
+					}
+					
+					target = pullToken();
+					
+					if (target == null) {
+						Debug.warn("Invalid use of \\damage command. Requires target value");
 						break;
 					}
 					
 					message = pullToken();
+					
 					if (message == null) {
-						Debug.warn("Invalid use of \\spawn command. Requires movement values");
+						Debug.warn("Invalid use of \\damage command. Requires amount value");
 						break;
 					}
 					
-					String[] spawnData = message.split(",");
+					amount = Float.valueOf(message);
 					
-					x = Float.valueOf(spawnData[0]);
-					y = Float.valueOf(spawnData[1]);
-					z = Float.valueOf(spawnData[2]);
-					
-					this.commandQ.add(new SpawnCommand(null, name, new Vector3(x, y, z)));
-					
-					break;
-					
-				case "\\kill":
-					name = pullToken();
-					
-					if (name == null) {
-						Debug.warn("Invalid use of \\kill command. Requires name value");
-						break;
-					}
-					
-					this.commandQ.add(new KillCommand(null, name));
+					this.commandQ.add(new DamageCommand(null, name, target, amount));
 					
 					break;
 					
@@ -359,7 +414,9 @@ public class Server implements ILoggable {
 				String token;
 				
 				String name = "";
+				String target = "";
 				String password = "";
+				float amount = 0f;
 				float x=0f, y=0f, z=0f;
 				message = "";
 				while ((token = pullToken()) != null) {
@@ -427,39 +484,86 @@ public class Server implements ILoggable {
 						
 						break;
 						
-					case "\\spawn":
+//					case "\\spawn":
+//						name = pullToken();
+//						
+//						if (name == null) {
+//							Debug.warn("Invalid use of \\spawn command. Requires name value");
+//							break;
+//						}
+//						
+//						message = pullToken();
+//						if (message == null) {
+//							Debug.warn("Invalid use of \\spawn command. Requires movement values");
+//							break;
+//						}
+//						
+//						String[] spawnData = message.split(",");
+//						
+//						x = Float.valueOf(spawnData[0]);
+//						y = Float.valueOf(spawnData[1]);
+//						z = Float.valueOf(spawnData[2]);
+//						
+//						this.commandQ.add(new SpawnCommand(sock, name, new Vector3(x, y, z)));
+//						
+//						break;
+//						
+//					case "\\kill":
+//						name = pullToken();
+//						
+//						if (name == null) {
+//							Debug.warn("Invalid use of \\kill command. Requires name value");
+//							break;
+//						}
+//						
+//						this.commandQ.add(new KillCommand(sock, name));
+//						
+//						break;
+						
+					case "\\attack":
 						name = pullToken();
 						
 						if (name == null) {
-							Debug.warn("Invalid use of \\spawn command. Requires name value");
+							Debug.warn("Invalid use of \\attack command. Requires name value");
+							break;
+						}
+						
+						target = pullToken();
+						
+						if (target == null) {
+							Debug.warn("Invalid use of \\attack command. Requires target value");
+							break;
+						}
+						
+						this.commandQ.add(new AttackCommand(sock, name, target));
+						
+						break;
+					
+					case "\\damage":
+						name = pullToken();
+						
+						if (name == null) {
+							Debug.warn("Invalid use of \\damage command. Requires name value");
+							break;
+						}
+						
+						target = pullToken();
+						
+						if (target == null) {
+							Debug.warn("Invalid use of \\damage command. Requires target value");
 							break;
 						}
 						
 						message = pullToken();
+						
 						if (message == null) {
-							Debug.warn("Invalid use of \\spawn command. Requires movement values");
+							Debug.warn("Invalid use of \\damage command. Requires amount value");
 							break;
 						}
 						
-						String[] spawnData = message.split(",");
+						amount = Float.valueOf(message);
 						
-						x = Float.valueOf(spawnData[0]);
-						y = Float.valueOf(spawnData[1]);
-						z = Float.valueOf(spawnData[2]);
-						
-						this.commandQ.add(new SpawnCommand(sock, name, new Vector3(x, y, z)));
-						
-						break;
-						
-					case "\\kill":
-						name = pullToken();
-						
-						if (name == null) {
-							Debug.warn("Invalid use of \\kill command. Requires name value");
-							break;
-						}
-						
-						this.commandQ.add(new KillCommand(sock, name));
+						this.commandQ.add(new DamageCommand(sock, name, target, amount));
 						
 						break;
 						
@@ -507,7 +611,7 @@ public class Server implements ILoggable {
 					
 					target = null;
 					for (UserSock usersock : this.usersocks) {
-						if (tellcmd.getToUsername().equals(usersock.getUser().getUsername())) {
+						if (tellcmd.getToUsername().equals(usersock.getUser().getName())) {
 							target = usersock.getUser();
 							break;
 						}
@@ -524,50 +628,50 @@ public class Server implements ILoggable {
 					break;
 					
 					
-				case SPAWN:
-					SpawnCommand spawncmd = (SpawnCommand)command;
-					
-					//Verify target User is logged in
-					target = null;
-					for (UserSock usersock : this.usersocks) {
-						if (spawncmd.getName().equals(usersock.getUser().getUsername())) {
-							target = usersock.getUser();
-							break;
-						}
-					}
-					
-					if (target == null) {
-						Debug.log("Cannot spawn target. No active User with username: " + spawncmd.getName());
-						break;
-					}
-					
-					//Broadcast spawn message to all connected clients to update their world state
-					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
-					
-					break;
-					
-					
-				case KILL:
-					KillCommand killcmd = (KillCommand)command;
-					
-					//Verify target User is logged in
-					target = null;
-					for (UserSock usersock : this.usersocks) {
-						if (killcmd.getName().equals(usersock.getUser().getUsername())) {
-							target = usersock.getUser();
-							break;
-						}
-					}
-					
-					if (target == null) {
-						Debug.log("Cannot kill target. No active User with username: " + killcmd.getName());
-						break;
-					}
-					
-					//Broadcast spawn message to all connected clients to update their world state
-					this.broadcastQ.add(new UserMessage(killcmd.toCommandString()));
-					
-					break;
+//				case SPAWN:
+//					SpawnCommand spawncmd = (SpawnCommand)command;
+//					
+//					//Verify target User is logged in
+//					target = null;
+//					for (UserSock usersock : this.usersocks) {
+//						if (spawncmd.getName().equals(usersock.getUser().getUsername())) {
+//							target = usersock.getUser();
+//							break;
+//						}
+//					}
+//					
+//					if (target == null) {
+//						Debug.log("Cannot spawn target. No active User with username: " + spawncmd.getName());
+//						break;
+//					}
+//					
+//					//Broadcast spawn message to all connected clients to update their world state
+//					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
+//					
+//					break;
+//					
+//					
+//				case KILL:
+//					KillCommand killcmd = (KillCommand)command;
+//					
+//					//Verify target User is logged in
+//					target = null;
+//					for (UserSock usersock : this.usersocks) {
+//						if (killcmd.getName().equals(usersock.getUser().getUsername())) {
+//							target = usersock.getUser();
+//							break;
+//						}
+//					}
+//					
+//					if (target == null) {
+//						Debug.log("Cannot kill target. No active User with username: " + killcmd.getName());
+//						break;
+//					}
+//					
+//					//Broadcast spawn message to all connected clients to update their world state
+//					this.broadcastQ.add(new UserMessage(killcmd.toCommandString()));
+//					
+//					break;
 					
 					
 				default:
@@ -597,11 +701,12 @@ public class Server implements ILoggable {
 					success = false;
 					user = null;
 					for (User reguser : this.registeredUsers) {
-						if (reguser.getUsername().equals(logincmd.getUsername()) && reguser.hasPassword(logincmd.getPassword())) {
+						if (reguser.getName().equals(logincmd.getUsername()) && reguser.hasPassword(logincmd.getPassword())) {
 							Debug.log("User logged in: " + reguser + " @ " + logincmd.getSock());
-							this.serverUI.log("User logged in: " + reguser.getUsername());
+							this.serverUI.log("User logged in: " + reguser.getName());
 							user = reguser;
 							this.usersocks.add(new UserSock(reguser, logincmd.getSock()));
+							this.netEntities.add(user);
 							success = true;
 							break;
 						}
@@ -615,7 +720,7 @@ public class Server implements ILoggable {
 					
 					//Broadcast login message to all connected clients to update their world state
 					if (user != null) {
-						String message = "\\login " + user.getUsername();
+						String message = "\\login " + user.getName();
 						this.broadcastQ.add(new UserMessage(message));
 					}
 					
@@ -624,7 +729,7 @@ public class Server implements ILoggable {
 						//Skip the sending user
 						if (usersock.getSock() == logincmd.getSock()) continue;
 						
-						String message = "\\login " + usersock.getUser().getUsername();
+						String message = "\\login " + usersock.getUser().getName();
 						this.directMessageQ.add(new UserMessage(message));
 					}
 					
@@ -659,7 +764,7 @@ public class Server implements ILoggable {
 							user = usersock.getUser();
 							this.usersocks.remove(usersock);
 							Debug.log("User logout successful: " + user + " @ " + usersock.getSock());
-							this.serverUI.log("User logout successful: " + user.getUsername());
+							this.serverUI.log("User logout successful: " + user.getName());
 							success = true;
 							break;
 						}
@@ -669,7 +774,7 @@ public class Server implements ILoggable {
 					
 					//Broadcast logout message to all connected clients to update their world state
 					if (user != null) {
-						String message = "\\logout " + user.getUsername();
+						String message = "\\logout " + user.getName();
 						this.broadcastQ.add(new UserMessage(message));
 					}
 					
@@ -717,7 +822,7 @@ public class Server implements ILoggable {
 					
 					target = null;
 					for (UserSock usersock : this.usersocks) {
-						if (tellcmd.getToUsername().equals(usersock.getUser().getUsername())) {
+						if (tellcmd.getToUsername().equals(usersock.getUser().getName())) {
 							target = usersock.getUser();
 							break;
 						}
@@ -755,47 +860,87 @@ public class Server implements ILoggable {
 					break;
 					
 					
-				case SPAWN:
-					SpawnCommand spawncmd = (SpawnCommand)command;
+//				case SPAWN:
+//					SpawnCommand spawncmd = (SpawnCommand)command;
+//					
+//					//Verify target User is logged in
+//					target = null;
+//					for (UserSock usersock : this.usersocks) {
+//						if (spawncmd.getName().equals(usersock.getUser().getUsername())) {
+//							target = usersock.getUser();
+//							break;
+//						}
+//					}
+//					
+//					if (target == null) {
+//						Debug.log("Cannot spawn target. No active User with username: " + spawncmd.getName());
+//						break;
+//					}
+//					
+//					//Broadcast spawn message to all connected clients to update their world state
+//					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
+//					
+//					break;
+//					
+//				case KILL:
+//					KillCommand killcmd = (KillCommand)command;
+//					
+//					//Verify target User is logged in
+//					target = null;
+//					for (UserSock usersock : this.usersocks) {
+//						if (killcmd.getName().equals(usersock.getUser().getUsername())) {
+//							target = usersock.getUser();
+//							break;
+//						}
+//					}
+//					
+//					if (target == null) {
+//						Debug.log("Cannot kill target. No active User with username: " + killcmd.getName());
+//						break;
+//					}
+//					
+//					//Broadcast spawn message to all connected clients to update their world state
+//					this.broadcastQ.add(new UserMessage(killcmd.toCommandString()));
+//					
+//					break;
 					
-					//Verify target User is logged in
-					target = null;
-					for (UserSock usersock : this.usersocks) {
-						if (spawncmd.getName().equals(usersock.getUser().getUsername())) {
-							target = usersock.getUser();
-							break;
+				case ATTACK:
+					AttackCommand attackcmd = (AttackCommand)command;
+					
+					NetEntity attacker = null;
+					for (NetEntity netEntity : this.netEntities) {
+						if (netEntity.getName().equals(attackcmd.getName())) {
+							attacker = netEntity;
 						}
 					}
 					
-					if (target == null) {
-						Debug.log("Cannot spawn target. No active User with username: " + spawncmd.getName());
+					if (attacker == null) {
+						Debug.warn("Failed to attack. Attacker has not active NetworkEntity: " + attackcmd);
 						break;
 					}
 					
-					//Broadcast spawn message to all connected clients to update their world state
-					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
+					NetEntity attackee = null;
+					for (NetEntity netEntity : this.netEntities) {
+						if (netEntity.getName().equals(attackcmd.getTarget())) {
+							attackee = netEntity;
+						}
+					}
+					
+					if (attackee == null) {
+						Debug.warn("Failed to attack. Attackee has not active NetworkEntity: " + attackcmd);
+						break;
+					}
+					
+					float damage = attacker.getStrength();
+					
+					this.commandQ.add(new DamageCommand(null, attacker.getName(), attackee.getName(), damage));
 					
 					break;
 					
-				case KILL:
-					KillCommand killcmd = (KillCommand)command;
+				case DAMAGE:
+					DamageCommand damagecmd = (DamageCommand)command;
 					
-					//Verify target User is logged in
-					target = null;
-					for (UserSock usersock : this.usersocks) {
-						if (killcmd.getName().equals(usersock.getUser().getUsername())) {
-							target = usersock.getUser();
-							break;
-						}
-					}
 					
-					if (target == null) {
-						Debug.log("Cannot kill target. No active User with username: " + killcmd.getName());
-						break;
-					}
-					
-					//Broadcast spawn message to all connected clients to update their world state
-					this.broadcastQ.add(new UserMessage(killcmd.toCommandString()));
 					
 					break;
 					
@@ -861,13 +1006,13 @@ public class Server implements ILoggable {
 		
 		String sender;
 		if (usermessage.getUser() == null) sender = "SERVER";
-		else sender = usermessage.getUser().getUsername();
+		else sender = usermessage.getUser().getName();
 		
 		//Check for target socket
 		Socket sock = null;
 		if (usermessage.getTarget() != null) {
 			for (UserSock usersock : this.usersocks) {
-				if (usersock.getUser().getUsername().equals(usermessage.getTarget().getUsername())) {
+				if (usersock.getUser().getName().equals(usermessage.getTarget().getName())) {
 					sock = usersock.getSock();
 					break;
 				}
@@ -878,8 +1023,8 @@ public class Server implements ILoggable {
 		if (sock == null) {
 			
 			for (UserSock usersock : this.usersocks) {
-				Debug.log("Broadcasting message to User " + usersock.getUser().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
-				this.serverUI.log("Broadcasting message to User " + usersock.getUser().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+				Debug.log("Broadcasting message to User " + usersock.getUser().getName() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+				this.serverUI.log("Broadcasting message to User " + usersock.getUser().getName() + "... [" + sender + ": " + usermessage.getMessage() + "]");
 				write(usersock.getSock(), "[" + sender + "] " + usermessage.getMessage());
 			}
 			
@@ -888,8 +1033,8 @@ public class Server implements ILoggable {
 		else {
 			//Mute RollCall commands (they clutter up output)
 			if (!usermessage.getMessage().contains("\\rc")) {
-				Debug.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
-				this.serverUI.log("Sending message to User " + usermessage.getTarget().getUsername() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+				Debug.log("Sending message to User " + usermessage.getTarget().getName() + "... [" + sender + ": " + usermessage.getMessage() + "]");
+				this.serverUI.log("Sending message to User " + usermessage.getTarget().getName() + "... [" + sender + ": " + usermessage.getMessage() + "]");
 			}
 			write(sock, "[" + sender + "] " + usermessage.getMessage());
 		}

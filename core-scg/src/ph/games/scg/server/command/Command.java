@@ -17,12 +17,35 @@ public abstract class Command implements ILoggable {
 		TELL,
 		MOVE,
 		SPAWN,
-		KILL
+		KILL,
+		ATTACK,
+		DAMAGE
 	}
 	
 	private CMD_TYP type;
 	private Socket sock;
 
+	public Command(CMD_TYP type, Socket sock) {
+		this.type = type;
+		this.sock = sock;
+	}
+	
+	public abstract String toCommandString();
+	
+	public CMD_TYP getType() {
+		return this.type;
+	}
+	
+	public Socket getSock() {
+		return this.sock;
+	}
+	
+	@Override
+	public String toString() {
+		return "COMMAND_" + this.type;
+	}
+	
+	
 	//TODO: Revisit this when you have time
 //	//Takes in String version of a command and attempts to generate the relevant command
 //	public static Command parseCommand(Socket sock, String commandString) {
@@ -82,25 +105,5 @@ public abstract class Command implements ILoggable {
 //		
 //		return cmd;
 //	}
-	
-	public Command(CMD_TYP type, Socket sock) {
-		this.type = type;
-		this.sock = sock;
-	}
-	
-	public abstract String toCommandString();
-	
-	public CMD_TYP getType() {
-		return this.type;
-	}
-	
-	public Socket getSock() {
-		return this.sock;
-	}
-	
-	@Override
-	public String toString() {
-		return "COMMAND_" + this.type;
-	}
 
 }

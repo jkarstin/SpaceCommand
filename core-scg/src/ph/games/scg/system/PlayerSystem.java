@@ -76,7 +76,7 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 
 	private void updateMovement(float dt) {
 		//Fire when clicked/touched
-		if (Gdx.input.isTouched()) fire();
+		if (Gdx.input.justTouched()) fire();
 		
 		float deltaX = -Gdx.input.getDeltaX() * 0.5f;
 		float deltaY = -Gdx.input.getDeltaY() * 0.5f;
@@ -185,10 +185,10 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 	}
 
 	private void checkGameOver() {
-		if (this.playerComponent.health <= 0 && !Settings.Paused) {
-			Settings.Paused = true;
-			this.gameUI.gameOverWidget.gameOver();
-		}
+//		if (this.playerComponent.health <= 0 && !Settings.Paused) {
+//			Settings.Paused = true;
+//			this.gameUI.gameOverWidget.gameOver();
+//		}
 	}
 
 }

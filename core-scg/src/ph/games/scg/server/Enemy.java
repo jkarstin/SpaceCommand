@@ -2,17 +2,11 @@ package ph.games.scg.server;
 
 import com.badlogic.gdx.math.Vector3;
 
-public class User extends NetEntity {
-	
-	private String password;
-	
-	public User(String username, String password) {
-		super(NET_TYP.USER);
-		
-		this.name = username;
-		this.password = password;
+public class Enemy extends NetEntity {
+
+	public Enemy() {
+		super(NET_TYP.ENEMY);
 	}
-	public User(String username) { this(username, null); }
 	
 	@Override
 	public void resetHealth() {
@@ -37,11 +31,6 @@ public class User extends NetEntity {
 	@Override
 	public void moveBy(Vector3 movement) {
 		this.position.add(movement);
-	}
-	
-	public boolean hasPassword(String password) {
-		if (this.password == null) return true;
-		return (this.password.equals(password));
 	}
 	
 	@Override

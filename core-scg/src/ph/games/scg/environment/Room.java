@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import com.badlogic.gdx.math.Vector3;
 
-import ph.games.scg.util.Debug;
 import ph.games.scg.util.ILoggable;
 
 public class Room implements ILoggable {
@@ -34,7 +33,7 @@ public class Room implements ILoggable {
 		this.name = name;
 	}
 	
-	public void setLocation(float x, float y, float z) {
+	public void setPosition(float x, float y, float z) {
 		this.position.x = x;
 		this.position.y = y;
 		this.position.z = z;
@@ -117,10 +116,10 @@ public class Room implements ILoggable {
 		}
 		
 		public void setCorners(Vector3 bl, Vector3 tl, Vector3 tr, Vector3 br) {
-			this.cornerBL = bl.cpy();
-			this.cornerTL = tl.cpy();
-			this.cornerTR = tr.cpy();
-			this.cornerBR = br.cpy();
+			this.cornerBL.set(bl);
+			this.cornerTL.set(tl);
+			this.cornerTR.set(tr);
+			this.cornerBR.set(br);
 
 			this.calculateNormal();
 			this.calculateCenter();
@@ -155,31 +154,27 @@ public class Room implements ILoggable {
 		}
 		
 		private void calculateNormal() {
-			Vector3 dia0 = this.cornerTR.cpy();
-			dia0.sub(this.cornerBL);
+			Vector3 dia0 = new Vector3();
+			Vector3 dia1 = new Vector3();
 			
-			Vector3 dia1 = this.cornerTL.cpy();
-			dia1.sub(this.cornerBR);
+			dia0.set(this.cornerTR).sub(this.cornerBL);
+			dia1.set(this.cornerTL).sub(this.cornerBR);
 			
-			Vector3 nml = dia0.crs(dia1).nor();
-			
-			this.normal = nml;
+			this.normal.set(dia0).crs(dia1).nor();
 		}
 		
 		//Find center of quad
 		private void calculateCenter() {
-			Vector3 tmp = this.cornerTR.cpy();
-			tmp.sub(this.cornerBL).scl(0.5f).add(this.cornerBL);
-			this.center = tmp;
+			this.center.set(this.cornerTR).sub(this.cornerBL).scl(0.5f).add(this.cornerBL);
 		}
 		
 		@Override
 		public String toString() {
 			String str = "QUAD{texture=" + this.texture;
 			str += " cornerBL=" + this.cornerBL;
-			str += " cornerBR=" + this.cornerBR;
-			str += " cornerTR=" + this.cornerTR;
 			str += " cornerTL=" + this.cornerTL;
+			str += " cornerTR=" + this.cornerTR;
+			str += " cornerBR=" + this.cornerBR;
 			str += " normal=" + this.normal;
 			str += " center=" + this.center;
 			str += "}";
