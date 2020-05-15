@@ -59,7 +59,7 @@ public class GameUI {
 		this.chatWidget.setSize(300f, 300f);
 		this.chatWidget.setPosition(0f, 0f);
 		this.scoreWidget.setSize(200f, 60f);
-		this.scoreWidget.setPosition(0f, GameCore.VIRTUAL_HEIGHT, Align.topLeft);
+		this.scoreWidget.setPosition(0f, GameCore.VIRTUAL_HEIGHT-this.scoreWidget.getHeight());
 
 		this.stage.addActor(this.healthWidget);
 		this.stage.addActor(this.crosshairWidget);

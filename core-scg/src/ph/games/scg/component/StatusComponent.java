@@ -25,6 +25,7 @@ public class StatusComponent implements Component {
 
 	public void setAlive(boolean alive) {
 		this.alive = alive;
+		if (!this.alive) this.setIdle(true);
 	}
 	
 	public void setIdle(boolean idle) {
