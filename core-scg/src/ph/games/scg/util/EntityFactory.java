@@ -40,6 +40,7 @@ import ph.games.scg.component.NetEntityComponent;
 import ph.games.scg.component.PlayerComponent;
 import ph.games.scg.component.StatusComponent;
 import ph.games.scg.environment.Room.Quad;
+import ph.games.scg.game.GameCore;
 import ph.games.scg.server.Enemy;
 import ph.games.scg.server.User;
 import ph.games.scg.system.BulletSystem;
@@ -195,10 +196,14 @@ public class EntityFactory {
 		return entity;
 	}
 
-	public static Entity createPlayer(BulletSystem bulletSystem, NetEntitySystem netEntitySystem, float x, float y, float z) {
+	public static Entity createPlayer(BulletSystem bulletSystem, float x, float y, float z) {
 		Entity entity = createCharacter(bulletSystem, x, y, z);
 		entity.add(new PlayerComponent());
-		netEntitySystem.setPlayer(entity);
+		
+		NetEntityComponent necomp = new NetEntityComponent();
+		necomp.netEntity = GameCore.client.getUser();
+		entity.add(necomp);
+		
 		return entity;
 	}
 

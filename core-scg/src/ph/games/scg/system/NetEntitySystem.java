@@ -13,6 +13,7 @@ import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.EnemyComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.NetEntityComponent;
+import ph.games.scg.component.PlayerComponent;
 import ph.games.scg.game.GameCore;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.EntityFactory;
@@ -54,6 +55,7 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 				if (attacker.equals(name)) {
 					attackerNentity = this.player;
 				}
+				else return;
 			}
 		}
 		
@@ -142,6 +144,9 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		NetEntityComponent nec;
 
 		for (Entity entity : this.nentities) {
+			//Skip Player entity
+			if (entity.getComponent(PlayerComponent.class) != null) continue;
+			
 			mc = entity.getComponent(ModelComponent.class);
 			cc = entity.getComponent(CharacterComponent.class);
 			nec = entity.getComponent(NetEntityComponent.class);
