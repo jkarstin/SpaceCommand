@@ -9,8 +9,6 @@ import ph.games.scg.screen.MainMenuScreen;
 import ph.games.scg.server.Client;
 import ph.games.scg.server.Server;
 import ph.games.scg.util.Assets;
-import ph.games.scg.util.Debug;
-import ph.games.scg.util.Debug.DEBUG_MODE;
 import ph.games.scg.util.Settings;
 
 public class GameCore extends Game {

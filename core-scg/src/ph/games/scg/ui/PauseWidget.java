@@ -11,14 +11,13 @@ import com.badlogic.gdx.scenes.scene2d.ui.Window;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 
 import ph.games.scg.game.GameCore;
-import ph.games.scg.screen.GameScreen;
 import ph.games.scg.util.Assets;
 import ph.games.scg.util.Settings;
 
 public class PauseWidget extends Actor {
    
 	private Window window;
-	private TextButton closeDialogue, restartButton, quitButton;
+	private TextButton closeDialogue, /*restartButton,*/ quitButton;
 	private Stage stage;
    
    public PauseWidget(Stage s) {

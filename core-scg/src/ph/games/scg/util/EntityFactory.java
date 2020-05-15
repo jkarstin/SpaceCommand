@@ -44,7 +44,6 @@ import ph.games.scg.game.GameCore;
 import ph.games.scg.server.Enemy;
 import ph.games.scg.server.User;
 import ph.games.scg.system.BulletSystem;
-import ph.games.scg.system.NetEntitySystem;
 
 public class EntityFactory {
 

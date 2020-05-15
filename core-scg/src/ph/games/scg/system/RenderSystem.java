@@ -17,7 +17,6 @@ import ph.games.scg.component.AnimationComponent;
 import ph.games.scg.component.GunComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.game.GameCore;
-import ph.games.scg.util.Settings;
 
 public class RenderSystem extends EntitySystem {
    

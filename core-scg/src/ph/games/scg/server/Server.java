@@ -636,10 +636,6 @@ public class Server implements ILoggable {
 				case SPAWN:
 					SpawnCommand spawncmd = (SpawnCommand)command;
 					
-					//Check to see if NetEntity should be an existing User or a new Enemy
-					String name = spawncmd.getName();
-					
-					
 					//Broadcast spawn message to all connected clients to update their world state
 					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
 					
