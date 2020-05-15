@@ -1,69 +1,44 @@
 package ph.games.scg.system;
 
-import java.util.Random;
-
-import com.badlogic.ashley.core.ComponentMapper;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.EntityListener;
 import com.badlogic.ashley.core.EntitySystem;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.utils.ImmutableArray;
-import com.badlogic.gdx.math.Matrix4;
-import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 
 import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.EnemyComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.NetEntityComponent;
-import ph.games.scg.component.PlayerComponent;
 import ph.games.scg.game.GameCore;
-import ph.games.scg.util.EntityFactory;
 
 public class EnemySystem extends EntitySystem implements EntityListener {
-
-	private final ComponentMapper<CharacterComponent> cm = ComponentMapper.getFor(CharacterComponent.class);
-
-	private ImmutableArray<Entity> entities;
-	private Entity player;
-	private Quaternion quat = new Quaternion();
-	private Engine engine;
-	private BulletSystem bulletSystem;
 	
+	private ImmutableArray<Entity> entities;
+	
+	private static boolean spawnFlag = true;
 	private static int ENEMY_COUNTER = 0;
-
-	public EnemySystem(BulletSystem bs) {
-		this.bulletSystem = bs;
-	}
 
 	@Override
 	public void addedToEngine(Engine engine) {
 		this.entities = engine.getEntitiesFor(Family.all(EnemyComponent.class, CharacterComponent.class).get());
-		engine.addEntityListener(Family.one(PlayerComponent.class).get(), this);
-		this.engine = engine;
 	}
 
 	@Override
 	public void update(float dt) {
 		if (this.entities.size() < 1) {
-			//Request new enemy spawn
-			GameCore.client.spawnEnemy("enemy_" + ENEMY_COUNTER++);
+			//Make sure to only spawn one and wait for spawn to come in
+			if (spawnFlag) {
+				//Request new enemy spawn
+				GameCore.client.spawnEnemy("enemy_" + ENEMY_COUNTER++);
+				spawnFlag = false;
+			}
 			return;
-			
-			
-//			Random random = new Random();
-//			this.engine.addEntity(
-//					EntityFactory.createEnemy(
-//							this.bulletSystem,
-//							"enemy_" + ENEMY_COUNTER++,
-//							random.nextInt(40) - 20,
-//							16,
-//							random.nextInt(40) - 20
-//							)
-//					);
 		}
 
+		spawnFlag = true;
 		EnemyComponent ecomp=null;
 		for (Entity e : this.entities) {
 			ecomp = e.getComponent(EnemyComponent.class);
@@ -87,9 +62,7 @@ public class EnemySystem extends EntitySystem implements EntityListener {
 	}
 
 	@Override
-	public void entityAdded(Entity entity) {
-		this.player = entity;
-	}
+	public void entityAdded(Entity entity) { }
 
 	@Override
 	public void entityRemoved(Entity entity) { }

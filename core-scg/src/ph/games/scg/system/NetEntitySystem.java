@@ -13,15 +13,15 @@ import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.EnemyComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.NetEntityComponent;
-import ph.games.scg.component.UserComponent;
 import ph.games.scg.game.GameCore;
-import ph.games.scg.server.NetEntity;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.EntityFactory;
 
 public class NetEntitySystem extends EntitySystem implements EntityListener {
 	
-	ImmutableArray<Entity> nentities;
+	private ImmutableArray<Entity> nentities;
+	
+	private Entity player;
 	
 	private BulletSystem bulletSystem;
 	private Engine engine;
@@ -29,6 +29,7 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 	
 	public NetEntitySystem(BulletSystem bulletSystem) {
 		GameCore.client.setNetEntitySystem(this);
+		this.player = null;
 		
 		this.bulletSystem = bulletSystem;
 	}
@@ -42,9 +43,18 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 			if (necomp.netEntity.getName().equals(attackee)) attackeeNentity = nentity;
 		}
 		
+		//TODO: Make this less patchwork. There has to be a better way to go about this
 		if (attackerNentity == null || attackeeNentity == null) {
-			Debug.warn("Failed to apply damage. Attacker or attackee NetEntity could not be found: [attacker=" + attacker + " attackee=" + attackee + "]");
-			return;
+			if (this.player == null) {
+				Debug.warn("Failed to apply damage. Attacker or attackee NetEntity could not be found: [attacker=" + attacker + " attackee=" + attackee + "]");
+				return;
+			}
+			else {
+				String name = GameCore.client.getUser().getName();
+				if (attacker.equals(name)) {
+					attackerNentity = this.player;
+				}
+			}
 		}
 		
 		//See if attackee has an EnemyComponent
@@ -55,11 +65,34 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		}
 		
 		//Apply damage
-		attackeeNentity.getComponent(NetEntityComponent.class).netEntity.applyDamage(amount);
+		necomp = attackeeNentity.getComponent(NetEntityComponent.class);
+		necomp.netEntity.applyDamage(amount);
+		
+		if (necomp.netEntity.getHealth() <= 0f) {
+			this.engine.removeEntity(attackeeNentity);
+			this.bulletSystem.removeBody(attackeeNentity);
+		}
+	}
+	
+	public void setPlayer(Entity player) {
+		this.player = player;
 	}
 	
 	public void spawnNetEntity(String name, Vector3 position) {
-		Entity nentity = EntityFactory.createUserEntity(this.bulletSystem, name, position.x, position.y, position.z);
+//		for (Entity nentity : this.nentities) {
+//			NetEntityComponent necomp = nentity.getComponent(NetEntityComponent.class);
+//			//Check to see if we already have a NetEntity with this name
+//			if (necomp.netEntity.getName().equals(name)) {
+//				
+//			}
+//		}
+		
+		Entity nentity=null;
+		
+		//TODO: Quick fix for now, make more general later
+		if (name.contains("enemy_")) nentity = EntityFactory.createEnemy(bulletSystem, name, position.x, position.y, position.z);
+		else nentity = EntityFactory.createUserEntity(this.bulletSystem, name, position.x, position.y, position.z);
+		
 		this.engine.addEntity(nentity);
 	}
 	
@@ -172,13 +205,18 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 	@Override
 	public void addedToEngine(Engine engine) {
 		this.nentities = engine.getEntitiesFor(Family.all(NetEntityComponent.class).get());
+		engine.addEntityListener(Family.all(NetEntityComponent.class).get(), this);
 		this.engine = engine;
 	}
 	
 	@Override
-	public void entityAdded(Entity entity) { }
+	public void entityAdded(Entity entity) {
+		this.nentities = engine.getEntitiesFor(Family.all(NetEntityComponent.class).get());
+	}
 
 	@Override
-	public void entityRemoved(Entity entity) { }
+	public void entityRemoved(Entity entity) {
+		this.nentities = engine.getEntitiesFor(Family.all(NetEntityComponent.class).get());
+	}
 
 }

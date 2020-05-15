@@ -43,6 +43,7 @@ import ph.games.scg.environment.Room.Quad;
 import ph.games.scg.server.Enemy;
 import ph.games.scg.server.User;
 import ph.games.scg.system.BulletSystem;
+import ph.games.scg.system.NetEntitySystem;
 
 public class EntityFactory {
 
@@ -194,9 +195,10 @@ public class EntityFactory {
 		return entity;
 	}
 
-	public static Entity createPlayer(BulletSystem bulletSystem, float x, float y, float z) {
+	public static Entity createPlayer(BulletSystem bulletSystem, NetEntitySystem netEntitySystem, float x, float y, float z) {
 		Entity entity = createCharacter(bulletSystem, x, y, z);
 		entity.add(new PlayerComponent());
+		netEntitySystem.setPlayer(entity);
 		return entity;
 	}
 

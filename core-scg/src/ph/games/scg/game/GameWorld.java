@@ -38,6 +38,7 @@ public class GameWorld {
 //	private EnemySystem enemySystem;
 //	private StatusSystem statusSystem;
 	private RenderSystem renderSystem;
+	private NetEntitySystem netEntitySystem;
 	
 //	private ArrayList<NetEntity> netEntities;
 
@@ -78,10 +79,10 @@ public class GameWorld {
 		this.engine.addSystem(this.bulletSystem = new BulletSystem());
 		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI));
 		
-		this.engine.addSystem(/* this.enemySystem = */ new EnemySystem(this.bulletSystem));
+		this.engine.addSystem(/* this.enemySystem = */ new EnemySystem());
 		this.engine.addSystem(/* this.statusSystem = */ new StatusSystem(this));
 		
-		this.engine.addSystem(new NetEntitySystem(this.bulletSystem));
+		this.engine.addSystem(this.netEntitySystem = new NetEntitySystem(this.bulletSystem));
 		
 		if (Debug.isOn()) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
 	}
@@ -248,7 +249,7 @@ public class GameWorld {
 	}
 
 	private void createPlayer(float x, float y, float z) {
-		this.character = EntityFactory.createPlayer(this.bulletSystem, x, y, z);
+		this.character = EntityFactory.createPlayer(this.bulletSystem, this.netEntitySystem, x, y, z);
 		this.engine.addEntity(this.character);
 		this.gun = EntityFactory.loadGun(4f, -4f, -7f);
 		this.engine.addEntity(this.gun);

@@ -45,7 +45,9 @@ public class SpawnCommand extends Command {
 	
 	@Override
 	public String toCommandString() {
-		return "\\spawn " + this.name + " " + this.position.x + "," + this.position.y + "," + this.position.z;
+		String str = "\\spawn " + this.name;
+		if (this.position != null) str += " " + this.position.x + "," + this.position.y + "," + this.position.z;
+		return str;
 	}
 	
 	@Override

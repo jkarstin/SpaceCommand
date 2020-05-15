@@ -18,6 +18,7 @@ import ph.games.scg.server.command.LoginCommand;
 import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
 import ph.games.scg.server.command.RollCallCommand;
+import ph.games.scg.server.command.SpawnCommand;
 import ph.games.scg.system.NetEntitySystem;
 import ph.games.scg.ui.ChatWidget;
 import ph.games.scg.util.Debug;
@@ -77,6 +78,10 @@ public class Client implements Disposable {
 		this.NES = NES;
 	}
 	
+	public User getUser() {
+		return this.user;
+	}
+	
 	public void login(String username, String password) {
 		if (!this.isOpen()) return;
 		
@@ -111,6 +116,8 @@ public class Client implements Disposable {
 	
 	public void spawnEnemy(String name) {
 		if (!this.isOpen() || this.user == null) return;
+		
+		this.outboundCommands.add(new SpawnCommand(this.sock, name, null));
 	}
 	
 	//Open a new Socket at specified address and port
@@ -327,12 +334,12 @@ public class Client implements Disposable {
 					deQMessages.add(message);
 					break;
 					
-//				case "\\spawn":
-//					//Spawn command relayed, apply to target UserEntity
-//					this.commandsFromServer.add(new SpawnCommand(tokens[2], tokens[3]));
-//					deQMessages.add(message);
-//					break;
-//					
+				case "\\spawn":
+					//Spawn command relayed, apply to target UserEntity
+					this.commandsFromServer.add(new SpawnCommand(tokens[2], tokens[3]));
+					deQMessages.add(message);
+					break;
+					
 //				case "\\kill":
 //					//Kill command relayed, apply to target UserEntity
 //					this.commandsFromServer.add(new KillCommand(tokens[2]));
@@ -401,15 +408,15 @@ public class Client implements Disposable {
 				
 				break;
 			
-//			case SPAWN:
-//				SpawnCommand spawncmd = (SpawnCommand)command;
-//				
-//				if (!this.user.getName().equals(spawncmd.getName())) {
-//					this.gameWorld.spawnUserEntity(spawncmd.getName(), spawncmd.getPosition());
-//				}
-//				
-//				break;
-//				
+			case SPAWN:
+				SpawnCommand spawncmd = (SpawnCommand)command;
+				
+				if (!this.user.getName().equals(spawncmd.getName())) {
+					this.NES.spawnNetEntity(spawncmd.getName(), spawncmd.getPosition());
+				}
+				
+				break;
+				
 //			case KILL:
 //				KillCommand killcmd = (KillCommand)command;
 //				

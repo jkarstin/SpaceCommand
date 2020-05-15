@@ -18,7 +18,10 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.StringTokenizer;
+
+import com.badlogic.gdx.math.Vector3;
 
 import ph.games.scg.server.command.AttackCommand;
 import ph.games.scg.server.command.Command;
@@ -29,6 +32,7 @@ import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
 import ph.games.scg.server.command.RollCallCommand;
 import ph.games.scg.server.command.SayCommand;
+import ph.games.scg.server.command.SpawnCommand;
 import ph.games.scg.server.command.TellCommand;
 import ph.games.scg.server.command.VersionCommand;
 import ph.games.scg.util.Debug;
@@ -489,30 +493,18 @@ public class Server implements ILoggable {
 						
 						break;
 						
-//					case "\\spawn":
-//						name = pullToken();
-//						
-//						if (name == null) {
-//							Debug.warn("Invalid use of \\spawn command. Requires name value");
-//							break;
-//						}
-//						
-//						message = pullToken();
-//						if (message == null) {
-//							Debug.warn("Invalid use of \\spawn command. Requires movement values");
-//							break;
-//						}
-//						
-//						String[] spawnData = message.split(",");
-//						
-//						x = Float.valueOf(spawnData[0]);
-//						y = Float.valueOf(spawnData[1]);
-//						z = Float.valueOf(spawnData[2]);
-//						
-//						this.commandQ.add(new SpawnCommand(sock, name, new Vector3(x, y, z)));
-//						
-//						break;
-//						
+					case "\\spawn":
+						name = pullToken();
+						
+						if (name == null) {
+							Debug.warn("Invalid use of \\spawn command. Requires name value");
+							break;
+						}
+						
+						this.commandQ.add(new SpawnCommand(sock, name, null));
+						
+						break;
+						
 //					case "\\kill":
 //						name = pullToken();
 //						
@@ -588,7 +580,8 @@ public class Server implements ILoggable {
 		Debug.logv(this.commandQ);
 		
 		boolean success;
-		User user, target;
+		User user, other;
+		NetEntity target;
 		
 		for (Command command : this.commandQ) {
 			//Mute RollCallCommands (they clutter output)
@@ -614,48 +607,38 @@ public class Server implements ILoggable {
 				case TELL:
 					TellCommand tellcmd = (TellCommand)command;
 					
-					target = null;
+					user = null;
 					for (UserSock usersock : this.usersocks) {
 						if (tellcmd.getToUsername().equals(usersock.getUser().getName())) {
-							target = usersock.getUser();
+							user = usersock.getUser();
 							break;
 						}
 					}
 					
-					if (target == null) {
+					if (user == null) {
 						Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
 						break;
 					}
 					
 					//Queue direct message to target user
-					this.directMessageQ.add(new UserMessage(null, tellcmd.getMessage(), target));
+					this.directMessageQ.add(new UserMessage(null, tellcmd.getMessage(), user));
 					
 					break;
 					
 					
-//				case SPAWN:
-//					SpawnCommand spawncmd = (SpawnCommand)command;
-//					
-//					//Verify target User is logged in
-//					target = null;
-//					for (UserSock usersock : this.usersocks) {
-//						if (spawncmd.getName().equals(usersock.getUser().getUsername())) {
-//							target = usersock.getUser();
-//							break;
-//						}
-//					}
-//					
-//					if (target == null) {
-//						Debug.log("Cannot spawn target. No active User with username: " + spawncmd.getName());
-//						break;
-//					}
-//					
-//					//Broadcast spawn message to all connected clients to update their world state
-//					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
-//					
-//					break;
-//					
-//					
+				case SPAWN:
+					SpawnCommand spawncmd = (SpawnCommand)command;
+					
+					//Check to see if NetEntity should be an existing User or a new Enemy
+					String name = spawncmd.getName();
+					
+					
+					//Broadcast spawn message to all connected clients to update their world state
+					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
+					
+					break;
+					
+					
 //				case KILL:
 //					KillCommand killcmd = (KillCommand)command;
 //					
@@ -825,24 +808,24 @@ public class Server implements ILoggable {
 						break;
 					}
 					
-					target = null;
+					other = null;
 					for (UserSock usersock : this.usersocks) {
 						if (tellcmd.getToUsername().equals(usersock.getUser().getName())) {
-							target = usersock.getUser();
+							other = usersock.getUser();
 							break;
 						}
 					}
 					
 					//Queue direct message to sending user for chat purposes
-					if (user != target) this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), user));
+					if (user != other) this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), user));
 					
-					if (target == null) {
+					if (other == null) {
 						Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
 						break;
 					}
 					
 					//Queue direct message to target user
-					this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), target));
+					this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), other));
 					
 					break;
 					
@@ -865,28 +848,35 @@ public class Server implements ILoggable {
 					break;
 					
 					
-//				case SPAWN:
-//					SpawnCommand spawncmd = (SpawnCommand)command;
-//					
-//					//Verify target User is logged in
-//					target = null;
-//					for (UserSock usersock : this.usersocks) {
-//						if (spawncmd.getName().equals(usersock.getUser().getUsername())) {
-//							target = usersock.getUser();
-//							break;
-//						}
-//					}
-//					
-//					if (target == null) {
-//						Debug.log("Cannot spawn target. No active User with username: " + spawncmd.getName());
-//						break;
-//					}
-//					
-//					//Broadcast spawn message to all connected clients to update their world state
-//					this.broadcastQ.add(new UserMessage(spawncmd.toCommandString()));
-//					
-//					break;
-//					
+				case SPAWN:
+					SpawnCommand spawncmd = (SpawnCommand)command;
+					
+					//Check to see if NetEntity should be an existing User or a new Enemy
+					String name = spawncmd.getName();
+					
+					boolean match = false;
+					for (NetEntity netEntity : this.netEntities) {
+						if (netEntity.getName().equals(name)) {
+							match = true;
+							break;
+						}
+					}
+					
+					//If no active NetEntity was found, create a new enemy
+					if (!match) {
+						this.netEntities.add(new Enemy(name));
+					}
+					
+					//Pick a random spawn location
+					Random random = new Random();
+					Vector3 position = new Vector3(random.nextFloat()*5f+10f, 20f, random.nextFloat()*5f+14f);
+					
+					//Broadcast spawn message to all connected clients to update their world state
+					this.broadcastQ.add(new UserMessage((new SpawnCommand(null, name, position)).toCommandString()));
+					
+					break;
+					
+					
 //				case KILL:
 //					KillCommand killcmd = (KillCommand)command;
 //					
