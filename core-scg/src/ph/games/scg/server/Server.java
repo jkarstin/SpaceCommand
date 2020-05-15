@@ -40,7 +40,7 @@ import ph.games.scg.util.ILoggable;
 
 public class Server implements ILoggable {
 	
-	public static final String SERVER_IP = "192.168.1.2";
+	public static final String SERVER_IP = "129.101.44.102";
 	public static final int SERVER_PORT = 21595;
 	private static final int SO_TIMEOUT = 50;
 	private static final float ROLL_CALL_FREQUENCY = 1f;
@@ -581,7 +581,7 @@ public class Server implements ILoggable {
 		
 		boolean success;
 		User user, other;
-		NetEntity target;
+//		NetEntity target;
 		
 		for (Command command : this.commandQ) {
 			//Mute RollCallCommands (they clutter output)
@@ -596,6 +596,13 @@ public class Server implements ILoggable {
 					
 					break;
 					
+				case LOGOUT:
+					LogoutCommand logoutcmd = (LogoutCommand)command;
+					
+					//Broadcast logout message to all connected clients to update their world state
+					this.broadcastQ.add(new UserMessage(logoutcmd.toCommandString()));
+					
+					break;
 					
 				case SAY:
 					SayCommand saycmd = (SayCommand)command;
@@ -762,8 +769,7 @@ public class Server implements ILoggable {
 					
 					//Broadcast logout message to all connected clients to update their world state
 					if (user != null) {
-						String message = "\\logout " + user.getName();
-						this.broadcastQ.add(new UserMessage(message));
+						this.broadcastQ.add(new UserMessage(logoutcmd.toCommandString()));
 					}
 					
 					break;
