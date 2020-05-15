@@ -31,13 +31,13 @@ public class PauseWidget extends Actor {
 	private void setWidgets() {
 		this.window = new Window("Pause", Assets.skin);
 		this.closeDialogue = new TextButton("X", Assets.skin);
-		this.restartButton = new TextButton("Restart", Assets.skin);
+//		this.restartButton = new TextButton("Restart", Assets.skin);
 		this.quitButton = new TextButton("Quit", Assets.skin);
 	}
 	
 	private void configureWidgets() {
 		this.window.getTitleTable().add(this.closeDialogue).height(this.window.getPadTop());
-		this.window.add(this.restartButton);
+//		this.window.add(this.restartButton);
 		this.window.add(this.quitButton);
 	}
 	
@@ -68,19 +68,20 @@ public class PauseWidget extends Actor {
 			
 		});
 		
-		this.restartButton.addListener(new ClickListener() {
-			
-			@Override
-			public void clicked(InputEvent event, float x, float y) {
-				GameCore.setActiveScreen(new GameScreen());
-			}
-			
-		});
+//		this.restartButton.addListener(new ClickListener() {
+//			
+//			@Override
+//			public void clicked(InputEvent event, float x, float y) {
+//				GameCore.setActiveScreen(new GameScreen());
+//			}
+//			
+//		});
 		
 		this.quitButton.addListener(new ClickListener() {
 			
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
+				GameCore.client.logout();
 				Gdx.app.exit();
 			}
 			

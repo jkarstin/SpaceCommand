@@ -94,11 +94,12 @@ public class Room implements ILoggable {
 		
 		private String texture;
 		private Vector3 cornerBL;
-		private Vector3 cornerBR;
-		private Vector3 cornerTR;
 		private Vector3 cornerTL;
+		private Vector3 cornerTR;
+		private Vector3 cornerBR;
+
 		private Vector3 normal;
-		private Vector3 dimensions;
+		private Vector3 center;
 		
 		public Quad() {
 			this.texture = null;
@@ -106,21 +107,23 @@ public class Room implements ILoggable {
 			this.cornerBR = new Vector3();
 			this.cornerTR = new Vector3();
 			this.cornerTL = new Vector3();
+
 			this.normal = new Vector3();
-			this.dimensions = new Vector3();
+			this.center = new Vector3();
 		}
 		
 		public void setTexture(String texture) {
 			this.texture = texture;
 		}
 		
-		public void setCorners(Vector3 bl, Vector3 br, Vector3 tr, Vector3 tl) {
+		public void setCorners(Vector3 bl, Vector3 tl, Vector3 tr, Vector3 br) {
 			this.cornerBL = bl.cpy();
-			this.cornerBR = br.cpy();
-			this.cornerTR = tr.cpy();
 			this.cornerTL = tl.cpy();
+			this.cornerTR = tr.cpy();
+			this.cornerBR = br.cpy();
+
 			this.calculateNormal();
-			this.calculateDimensions();
+			this.calculateCenter();
 		}
 		
 		public String getTexture() {
@@ -131,24 +134,24 @@ public class Room implements ILoggable {
 			return this.cornerBL;
 		}
 		
-		public Vector3 getBottomRight() {
-			return this.cornerBR;
+		public Vector3 getTopLeft() {
+			return this.cornerTL;
 		}
 		
 		public Vector3 getTopRight() {
 			return this.cornerTR;
 		}
 		
-		public Vector3 getTopLeft() {
-			return this.cornerTL;
+		public Vector3 getBottomRight() {
+			return this.cornerBR;
 		}
 		
 		public Vector3 getNormal() {
 			return this.normal;
 		}
 		
-		public Vector3 getDimensions() {
-			return this.dimensions;
+		public Vector3 getCenter() {
+			return this.center;
 		}
 		
 		private void calculateNormal() {
@@ -163,37 +166,11 @@ public class Room implements ILoggable {
 			this.normal = nml;
 		}
 		
-		private void calculateDimensions() {
-			float[] mMx = new float[] {this.cornerBL.x, this.cornerBL.x};
-			float[] mMy = new float[] {this.cornerBL.y, this.cornerBL.y};
-			float[] mMz = new float[] {this.cornerBL.z, this.cornerBL.z};
-			
-			if (this.cornerBR.x < mMx[0]) mMx[0] = this.cornerBR.x;
-			if (this.cornerTR.x < mMx[0]) mMx[0] = this.cornerTR.x;
-			if (this.cornerTL.x < mMx[0]) mMx[0] = this.cornerTL.x;
-			if (this.cornerBR.x > mMx[1]) mMx[1] = this.cornerBR.x;
-			if (this.cornerTR.x > mMx[1]) mMx[1] = this.cornerTR.x;
-			if (this.cornerTL.x > mMx[1]) mMx[1] = this.cornerTL.x;
-			
-			if (this.cornerBR.y < mMy[0]) mMy[0] = this.cornerBR.y;
-			if (this.cornerTR.y < mMy[0]) mMy[0] = this.cornerTR.y;
-			if (this.cornerTL.y < mMy[0]) mMy[0] = this.cornerTL.y;
-			if (this.cornerBR.y > mMy[1]) mMy[1] = this.cornerBR.y;
-			if (this.cornerTR.y > mMy[1]) mMy[1] = this.cornerTR.y;
-			if (this.cornerTL.y > mMy[1]) mMy[1] = this.cornerTL.y;
-			
-			if (this.cornerBR.z < mMz[0]) mMz[0] = this.cornerBR.z;
-			if (this.cornerTR.z < mMz[0]) mMz[0] = this.cornerTR.z;
-			if (this.cornerTL.z < mMz[0]) mMz[0] = this.cornerTL.z;
-			if (this.cornerBR.z > mMz[1]) mMz[1] = this.cornerBR.z;
-			if (this.cornerTR.z > mMz[1]) mMz[1] = this.cornerTR.z;
-			if (this.cornerTL.z > mMz[1]) mMz[1] = this.cornerTL.z;
-			
-			this.dimensions = new Vector3(
-					mMx[1]-mMx[0],
-					mMy[1]-mMy[0],
-					mMz[1]-mMz[0]
-					);
+		//Find center of quad
+		private void calculateCenter() {
+			Vector3 tmp = this.cornerTR.cpy();
+			tmp.sub(this.cornerBL).scl(0.5f).add(this.cornerBL);
+			this.center = tmp;
 		}
 		
 		@Override
@@ -204,7 +181,7 @@ public class Room implements ILoggable {
 			str += " cornerTR=" + this.cornerTR;
 			str += " cornerTL=" + this.cornerTL;
 			str += " normal=" + this.normal;
-			str += " dimensions=" + this.dimensions;
+			str += " center=" + this.center;
 			str += "}";
 			return str;
 		}

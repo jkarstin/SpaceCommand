@@ -85,8 +85,8 @@ public class GameWorld {
 		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI));
 		
 		this.engine.addSystem(/* this.userEntitySystem = */ new UserEntitySystem());
-		this.engine.addSystem(/* this.enemySystem = */ new EnemySystem(this.bulletSystem));
-		this.engine.addSystem(/* this.statusSystem = */ new StatusSystem(this));
+//		this.engine.addSystem(/* this.enemySystem = */ new EnemySystem(this.bulletSystem));
+//		this.engine.addSystem(/* this.statusSystem = */ new StatusSystem(this));
 		
 		if (Debug.isOn()) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
 	}
@@ -172,37 +172,68 @@ public class GameWorld {
 			
 			Debug.log(room);
 			
-			//TODO: Generate room boundary Quads and add to engine
 			Vector3 pos = room.getPosition();
 			Vector3 dim = room.getDimensions();
 			//Floor
 			Quad floor = new Quad();
 			floor.setTexture(room.getFloor());
 			floor.setCorners(
-					new Vector3(pos.x-(dim.x/2f), pos.y-(dim.y/2f), pos.z-(dim.z/2f)),
-					new Vector3(pos.x+(dim.x/2f), pos.y-(dim.y/2f), pos.z-(dim.z/2f)),
-					new Vector3(pos.x+(dim.x/2f), pos.y-(dim.y/2f), pos.z+(dim.z/2f)),
-					new Vector3(pos.x-(dim.x/2f), pos.y-(dim.y/2f), pos.z+(dim.z/2f))
+					new Vector3(pos.x      , pos.y      , pos.z      ),
+					new Vector3(pos.x+dim.x, pos.y      , pos.z      ),
+					new Vector3(pos.x+dim.x, pos.y      , pos.z+dim.z),
+					new Vector3(pos.x      , pos.y      , pos.z+dim.z)
 					);
 			this.engine.addEntity(EntityFactory.createQuad(floor));
 			//Wall0
 			Quad wall0 = new Quad();
 			wall0.setTexture(room.getTexture());
 			wall0.setCorners(
-					new Vector3(pos.x-(dim.x/2f), pos.y-(dim.y/2f), pos.z-(dim.z/2f)),
-					new Vector3(pos.x-(dim.x/2f), pos.y+(dim.y/2f), pos.z-(dim.z/2f)),
-					new Vector3(pos.x-(dim.x/2f), pos.y+(dim.y/2f), pos.z+(dim.z/2f)),
-					new Vector3(pos.x-(dim.x/2f), pos.y-(dim.y/2f), pos.z+(dim.z/2f))
+					new Vector3(pos.x      , pos.y      , pos.z+dim.z),
+					new Vector3(pos.x      , pos.y+dim.y, pos.z+dim.z),
+					new Vector3(pos.x      , pos.y+dim.y, pos.z      ),
+					new Vector3(pos.x      , pos.y      , pos.z      )
 					);
 			this.engine.addEntity(EntityFactory.createQuad(wall0));
 			//Wall1
-			
+			Quad wall1 = new Quad();
+			wall1.setTexture(room.getTexture());
+			wall1.setCorners(
+					new Vector3(pos.x+dim.x, pos.y      , pos.z+dim.z),
+					new Vector3(pos.x+dim.x, pos.y+dim.y, pos.z+dim.z),
+					new Vector3(pos.x      , pos.y+dim.y, pos.z+dim.z),
+					new Vector3(pos.x      , pos.y      , pos.z+dim.z)
+					);
+			this.engine.addEntity(EntityFactory.createQuad(wall1));
 			//Wall2
-			
+			Quad wall2 = new Quad();
+			wall2.setTexture(room.getTexture());
+			wall2.setCorners(
+					new Vector3(pos.x+dim.x, pos.y      , pos.z      ),
+					new Vector3(pos.x+dim.x, pos.y+dim.y, pos.z      ),
+					new Vector3(pos.x+dim.x, pos.y+dim.y, pos.z+dim.z),
+					new Vector3(pos.x+dim.x, pos.y      , pos.z+dim.z)
+					);
+			this.engine.addEntity(EntityFactory.createQuad(wall2));
 			//Wall3
-			
+			Quad wall3 = new Quad();
+			wall3.setTexture(room.getTexture());
+			wall3.setCorners(
+					new Vector3(pos.x      , pos.y      , pos.z      ),
+					new Vector3(pos.x      , pos.y+dim.y, pos.z      ),
+					new Vector3(pos.x+dim.x, pos.y+dim.y, pos.z      ),
+					new Vector3(pos.x+dim.x, pos.y      , pos.z      )
+					);
+			this.engine.addEntity(EntityFactory.createQuad(wall3));
 			//Ceiling
-			
+			Quad ceiling = new Quad();
+			ceiling.setTexture(room.getCeiling());
+			ceiling.setCorners(
+					new Vector3(pos.x      , pos.y+dim.y, pos.z+dim.z),
+					new Vector3(pos.x+dim.x, pos.y+dim.y, pos.z+dim.z),
+					new Vector3(pos.x+dim.x, pos.y+dim.y, pos.z      ),
+					new Vector3(pos.x      , pos.y+dim.y, pos.z      )
+					);
+			this.engine.addEntity(EntityFactory.createQuad(ceiling));
 			
 			//Generate and add decoration Quads to engine
 			for (Quad quad : room.getDecorations()) {
@@ -214,8 +245,10 @@ public class GameWorld {
 	}
 	
 	private void addEntities() {
-		this.engine.addEntity(EntityFactory.loadScene(10f, 11f, 18f));
-		createPlayer(10f, 16f, 18f);
+//		this.engine.addEntity(EntityFactory.loadScene(0f, 0f, 0f));
+//		createPlayer(0f, 4f, -3f);
+		this.engine.addEntity(EntityFactory.loadScene(10f, 10.5f, 18f));
+		createPlayer(10f, 14f, 21f);
 //		createSpaceship(2f, 3f, 1f);
 	}
 

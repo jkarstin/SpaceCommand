@@ -15,6 +15,7 @@ import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.graphics.g3d.model.data.ModelData;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.TextureProvider;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.physics.bullet.Bullet;
@@ -76,8 +77,14 @@ public class EntityFactory {
 		Vector3 tr = quad.getTopRight();
 		Vector3 tl = quad.getTopLeft();
 		Vector3 nml = quad.getNormal();
-		Vector3 dim = quad.getDimensions();
+		Vector3 ctr = quad.getCenter();
 
+		
+		
+		//Make rectangle where the corners are in the order that draws the texture the correct way
+		
+		
+		
 		Model quadModel = modelBuilder.createRect(
 
 				//TODO: Close, but is having issues keeping the texture inside the collider when drawn facing the opposite direction as an orientation that works.
@@ -99,8 +106,39 @@ public class EntityFactory {
 				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates
 
 				);
+		
+		final BoundingBox boundingBox = new BoundingBox();
+		quadModel.calculateBoundingBox(boundingBox);
+		Vector3 tmpV = new Vector3();
+		btCollisionShape col = new btBoxShape(
+				tmpV.set(
+						boundingBox.getWidth()  * 0.5f,
+						boundingBox.getHeight() * 0.5f,
+						boundingBox.getDepth()  * 0.5f
+						)
+				);
 
-		return EntityFactory.createStaticEntity(quadModel, bl.x + (dim.x/2f), bl.y + (dim.y/2f), bl.z + (dim.z/2f));
+		Entity entity = new Entity();
+
+		ModelComponent modelComponent = new ModelComponent(quadModel, 0f, 0f, 0f);
+		entity.add(modelComponent);
+
+		BulletComponent bulletComponent = new BulletComponent();
+		bulletComponent.bodyInfo = new btRigidBody.btRigidBodyConstructionInfo(
+				0,           //float mass
+				null,        //btMotionState motionState
+				col,         //btCollisionShape collisionShape
+				Vector3.Zero //Vector3 localInertia
+				);
+		bulletComponent.body = new btRigidBody(bulletComponent.bodyInfo);
+		bulletComponent.body.userData = entity;
+		Matrix4 transform = new Matrix4();
+		transform.translate(ctr.x, ctr.y, ctr.z);
+		bulletComponent.motionState = new MotionState(transform);		
+		((btRigidBody)bulletComponent.body).setMotionState(bulletComponent.motionState);
+		entity.add(bulletComponent);
+
+		return entity;
 	}
 
 	public static Entity createStaticEntity(Model model, float x, float y, float z) {
