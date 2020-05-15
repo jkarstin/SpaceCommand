@@ -85,8 +85,8 @@ public class GameWorld {
 		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI));
 		
 		this.engine.addSystem(/* this.userEntitySystem = */ new UserEntitySystem());
-//		this.engine.addSystem(/* this.enemySystem = */ new EnemySystem(this.bulletSystem));
-//		this.engine.addSystem(/* this.statusSystem = */ new StatusSystem(this));
+		this.engine.addSystem(/* this.enemySystem = */ new EnemySystem(this.bulletSystem));
+		this.engine.addSystem(/* this.statusSystem = */ new StatusSystem(this));
 		
 		if (Debug.isOn()) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
 	}

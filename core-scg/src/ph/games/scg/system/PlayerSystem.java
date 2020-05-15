@@ -29,7 +29,9 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 	private final Vector3 rayFrom = new Vector3();
 	private final Vector3 rayTo = new Vector3();
 	private final Vector3 tmp = new Vector3();
-	private final float turnSpeed = 3f;
+	private final float turnSpeed = 1f;
+	private final float moveSpeed = 10f;
+//	private final float jumpSpeed = 10f;
 
 	private BulletSystem bulletSystem;
 	private CharacterComponent characterComponent;
@@ -73,16 +75,22 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 	public void entityRemoved(Entity entity) { }
 
 	private void updateMovement(float dt) {
-		//Fire when clicked/touched or Space just pressed
-		if (Gdx.input.justTouched() ||
-				Gdx.input.isKeyJustPressed(Input.Keys.SPACE))
-			fire();
+		//Fire when clicked/touched
+		if (Gdx.input.isTouched()) fire();
+		
+		float deltaX = -Gdx.input.getDeltaX() * 0.5f;
+		float deltaY = -Gdx.input.getDeltaY() * 0.5f;
 
-		this.characterComponent.characterDirection.set(-1f, 0f, 0f).rot(this.modelComponent.instance.transform).nor();
+		this.tmp.set(0f, 0f, 0f);
+		this.camera.rotate(this.camera.up, deltaX * this.turnSpeed);
+		this.tmp.set(this.camera.direction).crs(this.camera.up).nor();
+		this.camera.direction.rotate(this.tmp, deltaY * this.turnSpeed);
+		this.tmp.set(0f, 0f, 0f);
+		
+		this.characterComponent.characterDirection.set(0f, 0f, 1f).rot(this.modelComponent.instance.transform).nor();
 		this.characterComponent.walkDirection.set(0f, 0f, 0f);
 
 		Vector3 movement = new Vector3();
-		float rotation = 0f;
 		boolean recordMovement = false;
 
 		if (Gdx.input.isKeyPressed(Input.Keys.W)) {
@@ -96,26 +104,32 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		//         this.characterComponent.walkDirection.sub(this.camera.direction);
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-			rotation += this.turnSpeed;
+			movement.sub(tmp.set(this.camera.direction).crs(this.camera.up));
+//			rotation += this.turnSpeed;
 			recordMovement = true;
 		//         this.camera.rotate(this.camera.up, this.turnSpeed);
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-			rotation -= this.turnSpeed;
+			movement.add(tmp.set(this.camera.direction).crs(this.camera.up));
+//			rotation -= this.turnSpeed;
 			recordMovement = true;
 		//         this.camera.rotate(this.camera.up, -this.turnSpeed);
 		}
-		if (Gdx.input.isKeyPressed(Input.Keys.PAGE_UP)) {
-			tmp.set(this.camera.direction).crs(this.camera.up).nor();
-			this.camera.direction.rotate(tmp, 2*this.turnSpeed/3f);
-		}
-		if (Gdx.input.isKeyPressed(Input.Keys.PAGE_DOWN)) {
-			tmp.set(this.camera.direction).crs(this.camera.up).nor();
-			this.camera.direction.rotate(tmp, -2*this.turnSpeed/3f);
-		}
+//		if (Gdx.input.isKeyPressed(Input.Keys.PAGE_UP)) {
+//			tmp.set(this.camera.direction).crs(this.camera.up).nor();
+//			this.camera.direction.rotate(tmp, 2*this.turnSpeed/3f);
+//		}
+//		if (Gdx.input.isKeyPressed(Input.Keys.PAGE_DOWN)) {
+//			tmp.set(this.camera.direction).crs(this.camera.up).nor();
+//			this.camera.direction.rotate(tmp, -2*this.turnSpeed/3f);
+//		}
+//		if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+//			movement.add(0f, this.jumpSpeed, 0f);
+//			recordMovement = true;
+//		}
 		
-		this.camera.rotate(this.camera.up, rotation);
-		movement.scl(10f * dt);
+//		this.camera.rotate(this.camera.up, rotation);
+		movement.nor().scl(this.moveSpeed * dt);
 		this.characterComponent.walkDirection.add(movement);
 		this.characterComponent.characterController.setWalkDirection(this.characterComponent.walkDirection);
 
@@ -124,8 +138,7 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		this.characterComponent.ghostObject.getWorldTransform().getTranslation(translation);
 		this.modelComponent.instance.transform.set(
 				translation.x, translation.y, translation.z,
-				this.camera.direction.x, this.camera.direction.y, this.camera.direction.z,
-				0f
+				this.camera.direction.x, this.camera.direction.y, this.camera.direction.z, 0f //Not convinced this is accurate, but we'll leave it for now
 				);
 		this.camera.position.set(translation.x, translation.y, translation.z);
 		this.camera.update(true);

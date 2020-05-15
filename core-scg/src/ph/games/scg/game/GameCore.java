@@ -5,12 +5,10 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 
-import ph.games.scg.screen.GameScreen;
+import ph.games.scg.screen.MainMenuScreen;
 import ph.games.scg.server.Client;
 import ph.games.scg.server.Server;
 import ph.games.scg.util.Assets;
-import ph.games.scg.util.Debug;
-import ph.games.scg.util.Debug.DEBUG_MODE;
 import ph.games.scg.util.Settings;
 
 public class GameCore extends Game {
@@ -32,13 +30,13 @@ public class GameCore extends Game {
 	
 	@Override
 	public void create () {
-		Debug.setMode(DEBUG_MODE.ON);
+//		Debug.setMode(DEBUG_MODE.ON);
 		
 		GameCore.client = new Client(Server.SERVER_IP, Server.SERVER_PORT);
 		new Assets();
 		Settings.load();
-//		GameCore.setActiveScreen(new MainMenuScreen());
-		GameCore.setActiveScreen(new GameScreen());
+		GameCore.setActiveScreen(new MainMenuScreen());
+//		GameCore.setActiveScreen(new GameScreen());
 	}
 
 	@Override
