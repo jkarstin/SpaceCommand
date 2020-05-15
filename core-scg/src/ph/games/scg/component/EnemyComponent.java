@@ -12,6 +12,7 @@ public class EnemyComponent implements Component {
    
    public STATE state;
    public Entity target;
+   public float reach = 5f;
    
    public EnemyComponent(STATE state) {
       this.state = state;

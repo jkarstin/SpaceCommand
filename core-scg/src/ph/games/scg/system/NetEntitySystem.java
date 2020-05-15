@@ -22,15 +22,12 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 	
 	private ImmutableArray<Entity> nentities;
 	
-	private Entity player;
-	
 	private BulletSystem bulletSystem;
 	private Engine engine;
 	private float dtRemaining;
 	
 	public NetEntitySystem(BulletSystem bulletSystem) {
 		GameCore.client.setNetEntitySystem(this);
-		this.player = null;
 		
 		this.bulletSystem = bulletSystem;
 	}
@@ -46,17 +43,8 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		
 		//TODO: Make this less patchwork. There has to be a better way to go about this
 		if (attackerNentity == null || attackeeNentity == null) {
-			if (this.player == null) {
-				Debug.warn("Failed to apply damage. Attacker or attackee NetEntity could not be found: [attacker=" + attacker + " attackee=" + attackee + "]");
-				return;
-			}
-			else {
-				String name = GameCore.client.getUser().getName();
-				if (attacker.equals(name)) {
-					attackerNentity = this.player;
-				}
-				else return;
-			}
+			Debug.warn("Failed to apply damage. Attacker or attackee NetEntity could not be found: [attacker=" + attacker + " attackee=" + attackee + "]");
+			return;
 		}
 		
 		//See if attackee has an EnemyComponent
@@ -74,10 +62,6 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 			this.engine.removeEntity(attackeeNentity);
 			this.bulletSystem.removeBody(attackeeNentity);
 		}
-	}
-	
-	public void setPlayer(Entity player) {
-		this.player = player;
 	}
 	
 	public void spawnNetEntity(String name, Vector3 position) {

@@ -49,15 +49,24 @@ public class EnemySystem extends EntitySystem implements EntityListener {
 			NetEntityComponent necomp = e.getComponent(NetEntityComponent.class);
 			Vector3 targetPosition = new Vector3();
 			Vector3 enemyPosition = new Vector3();
+			Vector3 distance = new Vector3();
 			tgtmcomp.instance.transform.getTranslation(targetPosition);
 			mcomp.instance.transform.getTranslation(enemyPosition);
+			distance.set(targetPosition).sub(enemyPosition);
 			float dX = targetPosition.x - enemyPosition.x;
 			float dZ = targetPosition.z - enemyPosition.z;
 			float theta = (float)Math.toDegrees(Math.atan2(dX, dZ));
+			
+			if (theta < 0f) theta += 360f;
+			else if (theta >= 360f) theta -= 360f;
+			
 			Vector3 movement = new Vector3(0f, 0f, 1f);
 			movement.rotate(Vector3.Y, theta).scl(3f * dt);
 			
 			GameCore.client.move(necomp.netEntity.getName(), movement, theta, dt);
+			
+			//TODO: Almost works. Can't seem to locate player as attackee, I think
+//			if (distance.len() <= ecomp.reach) GameCore.client.attack(necomp.netEntity.getName(), ecomp.target.getComponent(NetEntityComponent.class).netEntity.getName());
 		}
 	}
 

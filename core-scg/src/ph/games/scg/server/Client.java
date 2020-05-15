@@ -108,6 +108,12 @@ public class Client implements Disposable {
 		this.move(this.user.getName(), movement, facing, dt);
 	}
 	
+	public void attack(String attacker, String attackee) {
+		if (!this.isOpen() || this.user == null) return;
+		
+		this.outboundCommands.add(new AttackCommand(this.sock, attacker, attackee));
+	}
+	
 	public void attack(String target) {
 		if (!this.isOpen() || this.user == null) return;
 		
