@@ -32,7 +32,7 @@ public class GameCore extends Game {
 	
 	@Override
 	public void create () {
-		Debug.setMode(DEBUG_MODE.ON);
+//		Debug.setMode(DEBUG_MODE.ON);
 		
 		GameCore.client = new Client(Server.SERVER_IP, Server.SERVER_PORT);
 		new Assets();

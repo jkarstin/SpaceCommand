@@ -707,6 +707,8 @@ public class Server implements ILoggable {
 						Debug.log("Login attempt failed: Incorrect username or password");
 						this.serverUI.log("Login attempt failed: Incorrect username or password");
 						Debug.logv(this.registeredUsers);
+						
+						//TODO: Send login failed command to requesting socket
 					}
 					
 					//Broadcast login message to all connected clients to update their world state

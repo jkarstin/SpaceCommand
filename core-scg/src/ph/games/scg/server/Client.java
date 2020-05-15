@@ -391,6 +391,9 @@ public class Client implements Disposable {
 					//Add new UserEntity to GameWorld
 					this.NES.spawnNetEntity(logincmd.getUsername(), new Vector3(10f, 20f, 21f));
 				}
+				else {
+					//User login completed on server side
+				}
 				
 				break;
 
@@ -419,6 +422,9 @@ public class Client implements Disposable {
 				
 				if (!this.user.getName().equals(spawncmd.getName())) {
 					this.NES.spawnNetEntity(spawncmd.getName(), spawncmd.getPosition());
+				}
+				else {
+					//User to be spawned at given location
 				}
 				
 				break;
