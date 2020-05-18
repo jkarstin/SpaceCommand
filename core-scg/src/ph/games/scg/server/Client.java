@@ -17,6 +17,7 @@ import ph.games.scg.server.command.DamageCommand;
 import ph.games.scg.server.command.LoginCommand;
 import ph.games.scg.server.command.LogoutCommand;
 import ph.games.scg.server.command.MoveCommand;
+import ph.games.scg.server.command.PositionCommand;
 import ph.games.scg.server.command.RollCallCommand;
 import ph.games.scg.server.command.SpawnCommand;
 import ph.games.scg.system.NetEntitySystem;
@@ -94,6 +95,13 @@ public class Client implements Disposable {
 		
 		this.user = null;
 		this.outboundCommands.add(new LogoutCommand());
+	}
+	
+	public void updatePosition(Vector3 position) {
+		if (!this.isOpen() || this.user == null) return;
+		
+		this.user.setPosition(position);
+		this.outboundCommands.add(new PositionCommand(this.sock, this.user.getName(), position));
 	}
 	
 	public void move(String name, Vector3 movement, float facing, float dt) {
@@ -328,6 +336,12 @@ public class Client implements Disposable {
 					deQMessages.add(message);
 					break;
 					
+				case "\\pos":
+					//Position command relayed, set position of specified NetEntity
+					this.commandsFromServer.add(new PositionCommand(tokens[2], tokens[3]));
+					deQMessages.add(message);
+					break;
+					
 				case "\\move":
 					//Move command relayed, apply move to target UserEntity
 					this.commandsFromServer.add(new MoveCommand(tokens[2], tokens[3]));
@@ -407,12 +421,22 @@ public class Client implements Disposable {
 				
 				break;
 			
+			case POSITION:
+				PositionCommand poscmd = (PositionCommand)command;
+				
+				//Don't apply to this user
+				if (!this.user.hasName(poscmd.getName())) {
+					this.NES.updatePosition(poscmd.getName(), poscmd.getPosition());
+				}
+				
+				break;
+				
 			case MOVE:
 				MoveCommand movecmd = (MoveCommand)command;
 				
 				if (!this.user.getName().equals(movecmd.getName())) {
 					//Update NetEntity
-					this.NES.updateNetEntity(movecmd.getName(), movecmd.getMoveVector(), movecmd.getFacing(), movecmd.getDeltaTime());
+					this.NES.queueMovement(movecmd.getName(), movecmd.getMoveVector(), movecmd.getFacing(), movecmd.getDeltaTime());
 				}
 				
 				break;
@@ -506,5 +530,5 @@ public class Client implements Disposable {
 	public void dispose() {
 		this.close();
 	}
-
+	
 }

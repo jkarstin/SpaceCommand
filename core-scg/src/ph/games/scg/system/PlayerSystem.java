@@ -21,6 +21,7 @@ import ph.games.scg.component.PlayerComponent;
 import ph.games.scg.game.GameCore;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Debug;
+import ph.games.scg.util.Settings;
 
 public class PlayerSystem extends EntitySystem implements EntityListener {
 
@@ -38,7 +39,6 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 	private Entity player;
 	private GameUI gameUI;
 	private ModelComponent modelComponent;
-	private PlayerComponent playerComponent;
 
 	public Entity gun;
 
@@ -65,7 +65,6 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 	@Override
 	public void entityAdded(Entity entity) {
 		this.player = entity;
-		this.playerComponent    = entity.getComponent(   PlayerComponent.class);
 		this.characterComponent = entity.getComponent(CharacterComponent.class);
 		this.modelComponent     = entity.getComponent(    ModelComponent.class);
 	}
@@ -102,28 +101,13 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.A)) {
 			movement.sub(tmp.set(this.camera.direction).crs(this.camera.up));
-//			rotation += this.turnSpeed;
 			recordMovement = true;
 		}
 		if (Gdx.input.isKeyPressed(Input.Keys.D)) {
 			movement.add(tmp.set(this.camera.direction).crs(this.camera.up));
-//			rotation -= this.turnSpeed;
 			recordMovement = true;
 		}
-//		if (Gdx.input.isKeyPressed(Input.Keys.PAGE_UP)) {
-//			tmp.set(this.camera.direction).crs(this.camera.up).nor();
-//			this.camera.direction.rotate(tmp, 2*this.turnSpeed/3f);
-//		}
-//		if (Gdx.input.isKeyPressed(Input.Keys.PAGE_DOWN)) {
-//			tmp.set(this.camera.direction).crs(this.camera.up).nor();
-//			this.camera.direction.rotate(tmp, -2*this.turnSpeed/3f);
-//		}
-//		if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-//			movement.add(0f, this.jumpSpeed, 0f);
-//			recordMovement = true;
-//		}
 		
-//		this.camera.rotate(this.camera.up, rotation);
 		movement.nor().scl(this.moveSpeed * dt);
 		this.characterComponent.walkDirection.add(movement);
 		this.characterComponent.characterController.setWalkDirection(this.characterComponent.walkDirection);
@@ -138,6 +122,10 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		this.camera.position.set(translation.x, translation.y, translation.z);
 		this.camera.update(true);
 		
+		//Tell server where the player is located
+		GameCore.client.updatePosition(translation);
+		
+		//If movement was input, tell server what movement occurred
 		if (recordMovement) {
 			//TODO: Figure out why this isn't capturing your rotation
 			Quaternion quat = new Quaternion();
@@ -169,8 +157,6 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 				Debug.log("NetEntity hit: " + nec.netEntity.getName());
 				
 				GameCore.client.attack(nec.netEntity.getName());
-//		             scomp.setAlive(false);
-//		             PlayerComponent.score += 100;
 			}
 			
 		}
@@ -178,14 +164,14 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 	}
 
 	private void updateStatus() {
-		this.gameUI.healthWidget.setValue(this.playerComponent.health);
+		this.gameUI.healthWidget.setValue(GameCore.client.getUser().getHealth());
 	}
 
 	private void checkGameOver() {
-//		if (this.playerComponent.health <= 0 && !Settings.Paused) {
-//			Settings.Paused = true;
-//			this.gameUI.gameOverWidget.gameOver();
-//		}
+		if (GameCore.client.getUser().getHealth() <= 0f && !Settings.Paused) {
+			Settings.Paused = true;
+			this.gameUI.gameOverWidget.gameOver();
+		}
 	}
 
 }

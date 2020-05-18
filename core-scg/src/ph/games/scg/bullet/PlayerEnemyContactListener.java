@@ -6,8 +6,9 @@ import com.badlogic.gdx.physics.bullet.collision.btCollisionObject;
 
 import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.component.EnemyComponent;
-import ph.games.scg.component.PlayerComponent;
+import ph.games.scg.component.NetEntityComponent;
 import ph.games.scg.component.StatusComponent;
+import ph.games.scg.server.User;
 
 public class PlayerEnemyContactListener extends ContactListener {
 
@@ -21,7 +22,7 @@ public class PlayerEnemyContactListener extends ContactListener {
 
 			if (cc0 != null && cc1 != null) {
 				Entity ee, pe;
-				PlayerComponent pc;
+				User user;
 				StatusComponent sc;
 
 				if (e0.getComponent(EnemyComponent.class) != null) {
@@ -33,12 +34,12 @@ public class PlayerEnemyContactListener extends ContactListener {
 					pe = e0;
 				}
 
-				pc = pe.getComponent(PlayerComponent.class);
+				user = (User)pe.getComponent(NetEntityComponent.class).netEntity;
 				sc = ee.getComponent(StatusComponent.class);
 
 				if (sc.alive) {
-					pc.health -= 10;
-					sc.alive = false;
+					user.applyDamage(10f);
+					sc.setAlive(false);
 				}
 			}
 		}

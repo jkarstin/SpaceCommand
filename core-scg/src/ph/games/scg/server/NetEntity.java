@@ -13,24 +13,31 @@ public abstract class NetEntity implements ILoggable {
 		ENEMY
 	}
 	
-	private NET_TYP type;
 	public final int NET_ID;
+	
+	private NET_TYP type;
 	protected String name;
+	
 	protected float health;
 	protected float strength;
+	
+	protected float facing;
 	protected Vector3 position;
 	
 	public NetEntity(NET_TYP type, String name) {
+		this.NET_ID = ID_TAG++;
+		
 		this.type = type;
 		this.name = name;
 		
-		this.NET_ID = ID_TAG++;
-		
 		this.resetHealth();
 		this.strength = 10f;
+		
+		this.facing = 0f;
 		this.position = new Vector3();
 	}
 	
+	public abstract boolean hasName(String name);
 	public abstract void resetHealth();
 	public abstract void applyDamage(float amount);
 	public abstract void setStrength(float strength);
@@ -57,5 +64,5 @@ public abstract class NetEntity implements ILoggable {
 	public String toString() {
 		return "NET_ENTITY_" + this.type;
 	}
-
+	
 }

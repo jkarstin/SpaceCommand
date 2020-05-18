@@ -15,40 +15,33 @@ import ph.games.scg.component.CharacterComponent;
 import ph.games.scg.environment.Room;
 import ph.games.scg.environment.Room.Quad;
 import ph.games.scg.system.BulletSystem;
-import ph.games.scg.system.EnemySystem;
 import ph.games.scg.system.NetEntitySystem;
 import ph.games.scg.system.PlayerSystem;
 import ph.games.scg.system.RenderSystem;
-import ph.games.scg.system.StatusSystem;
 import ph.games.scg.ui.GameUI;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.EntityFactory;
 import ph.games.scg.util.Settings;
 
 public class GameWorld {
-
-	private BulletSystem bulletSystem;
+	
 	private DebugDrawer debugDrawer;
+
 	private Engine engine;
-	private Entity character;
+	private Entity player;
 	private Entity gun;
 	private GameUI gameUI;
-//	private UserEntitySystem userEntitySystem;
 	private PlayerSystem playerSystem;
-//	private EnemySystem enemySystem;
-//	private StatusSystem statusSystem;
 	private RenderSystem renderSystem;
+	private BulletSystem bulletSystem;
 	
-//	private ArrayList<NetEntity> netEntities;
-
 	public GameWorld(GameUI gameUI) {
-		Bullet.init(); //Load in Bullet.dll
-
+		//Load in Bullet.dll
+		Bullet.init();
+		
 		setDebug();
 
 		initWorld(gameUI);
-		
-//		this.netEntities = new ArrayList<NetEntity>();
 		
 		addSystems();
 		
@@ -56,10 +49,6 @@ public class GameWorld {
 		
 		addEntities();
 	}
-	
-//	public ArrayList<NetEntity> getNetEntities() {
-//		return this.netEntities;
-//	}
 	
 	private void setDebug() {
 		if (Debug.isOn()) {
@@ -77,18 +66,11 @@ public class GameWorld {
 		this.engine.addSystem(this.renderSystem = new RenderSystem());
 		this.engine.addSystem(this.bulletSystem = new BulletSystem());
 		this.engine.addSystem(this.playerSystem = new PlayerSystem(this.renderSystem.getPerspectiveCamera(), this.bulletSystem, this.gameUI));
-		
-		this.engine.addSystem(/* this.enemySystem = */ new EnemySystem());
-		this.engine.addSystem(/* this.statusSystem = */ new StatusSystem(this));
-		
-		this.engine.addSystem(new NetEntitySystem(this.bulletSystem));
-		
+		this.engine.addSystem(new NetEntitySystem(this.bulletSystem, GameCore.client));
 		if (Debug.isOn()) this.bulletSystem.collisionWorld.setDebugDrawer(this.debugDrawer);
 	}
 	
 	private void loadRooms() {
-//		engine.addEntity(EntityFactory.loadScene(0f, 0f, 0f));
-		
 		JsonReader jsonReader = new JsonReader();
 		JsonValue jsonValue = jsonReader.parse(Gdx.files.internal("./rooms/jebcsac.json"));
 		
@@ -136,8 +118,6 @@ public class GameWorld {
 		//Debug.log(jsonValue.toString());
 		
 		for (JsonValue jv=jsonValue.child(); jv != null; jv = jv.next()) {
-//			Debug.log(jv.toString());
-			
 			//Build new Room object from JsonValue
 			Room room = new Room();
 			room.setName(jv.getString("name"));
@@ -240,16 +220,14 @@ public class GameWorld {
 	}
 	
 	private void addEntities() {
-//		this.engine.addEntity(EntityFactory.loadScene(0f, 0f, 0f));
-//		createPlayer(0f, 4f, -3f);
 		this.engine.addEntity(EntityFactory.loadScene(10f, 10.5f, 18f));
 		createPlayer(10f, 14f, 21f);
 //		createSpaceship(2f, 3f, 1f);
 	}
 
 	private void createPlayer(float x, float y, float z) {
-		this.character = EntityFactory.createPlayer(this.bulletSystem, x, y, z);
-		this.engine.addEntity(this.character);
+		this.player = EntityFactory.createPlayer(this.bulletSystem, x, y, z);
+		this.engine.addEntity(this.player);
 		this.gun = EntityFactory.loadGun(4f, -4f, -7f);
 		this.engine.addEntity(this.gun);
 		this.playerSystem.gun = this.gun;
@@ -267,13 +245,9 @@ public class GameWorld {
 	}
 
 	private void disposeCharacter() {
-		CharacterComponent cc = this.character.getComponent(CharacterComponent.class);
-		this.bulletSystem.collisionWorld.removeAction(
-				cc.characterController
-				);
-		this.bulletSystem.collisionWorld.removeCollisionObject(
-				cc.ghostObject
-				);
+		CharacterComponent cc = this.player.getComponent(CharacterComponent.class);
+		this.bulletSystem.collisionWorld.removeAction(cc.characterController);
+		this.bulletSystem.collisionWorld.removeCollisionObject(cc.ghostObject);
 		cc.dispose();
 	}
 
@@ -308,41 +282,8 @@ public class GameWorld {
 	}
 
 	private void checkPause() {
-		if (Settings.Paused) {
-//			this.bulletSystem.setProcessing(false);
-			this.playerSystem.setProcessing(false);
-		}
-		else {
-//			this.bulletSystem.setProcessing(true);
-			this.playerSystem.setProcessing(true);
-		}
+		if (Settings.Paused) this.playerSystem.setProcessing(false);
+		else this.playerSystem.setProcessing(true);
 	}
-	
-//	//Link between a User instance and their GameWorld representation
-//	public static class UserEntity implements ILoggable {
-//		
-//		private User user;
-//		private Entity entity;
-//		
-//		public UserEntity(User user, Entity entity) {
-//			this.user = user;
-//			this.entity = entity;
-//		}
-//		
-//		public User getUser() {
-//			return this.user;
-//		}
-//		
-//		public Entity getEntity() {
-//			return this.entity;
-//		}
-//		
-//		@Override
-//		public String toString() {
-//			String str = "USER_ENTITY{user=" + this.user + " entity=" + this.entity + "}";
-//			return str;
-//		}
-//		
-//	}
 	
 }

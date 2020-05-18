@@ -20,11 +20,8 @@ public class ServerUI {
 	private Label logLabel;
 	private TextField commandLine;
 	
-	private Server server;
-	
-	public ServerUI(Server server) {
-		this.server = server;
-		this.server.setServerUI(this);
+	public ServerUI() {
+		ServerCore.server.setServerUI(this);
 		
 		this.stage = new Stage();
 		Gdx.input.setInputProcessor(this.stage);
@@ -54,7 +51,7 @@ public class ServerUI {
 			public boolean keyDown(InputEvent event, int keycode) {
 				switch (keycode) {
 				case Input.Keys.ENTER:
-					server.queueAdminMessage(commandLine.getText());
+					ServerCore.server.queueAdminMessage(commandLine.getText());
 					commandLine.setText("");
 					return true;
 				default:

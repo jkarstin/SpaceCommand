@@ -68,20 +68,7 @@ public class BulletSystem extends EntitySystem implements EntityListener {
 			this.collisionWorld.removeCollisionObject(character.ghostObject);
 		}
 	}
-
-//	public void addBody(Entity entity) {
-//		BulletComponent bcomp = entity.getComponent(BulletComponent.class);
-//		CharacterComponent ccomp = entity.getComponent(CharacterComponent.class);
-//		if (bcomp != null && ccomp != null) {
-//			this.collisionWorld.addCollisionObject(
-//					ccomp.ghostObject,
-//					(short)btBroadphaseProxy.CollisionFilterGroups.CharacterFilter,
-//					(short)btBroadphaseProxy.CollisionFilterGroups.AllFilter
-//					);
-//			this.collisionWorld.addAction(ccomp.characterController);
-//		}
-//	}
-
+	
 	public void dispose() {
 		this.collisionWorld.dispose();
 		if (this.solver != null)                 this.solver.dispose();

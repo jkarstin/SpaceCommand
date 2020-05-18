@@ -14,6 +14,11 @@ public class User extends NetEntity {
 	public User(String username) { this(username, null); }
 	
 	@Override
+	public boolean hasName(String name) {
+		return this.name.equals(name);
+	}
+	
+	@Override
 	public void resetHealth() {
 		this.health = 100f;
 	}

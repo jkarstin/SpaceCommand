@@ -1,19 +1,17 @@
 package ph.games.scg.server.command;
 
-import java.net.Socket;
-
 public class KillCommand extends Command {
 	
 	//Command format: \kill name
 	
 	private String name;
 	
-	public KillCommand(Socket sock, String name) {
-		super(CMD_TYP.KILL, sock);
+	public KillCommand(String name) {
+		//Kill command cannot be sent from a client, so kill will never have a socket
+		super(CMD_TYP.KILL, null);
 		
 		this.name = name;
 	}
-	public KillCommand(String name) { this(null, name); }
 	
 	//TODO: Revisit this idea when you have time
 //	public KillCommand(String commandString) {

@@ -1,3 +1,14 @@
+/**************************************
+ * NetEntitySystem.java
+ * 
+ * Entity System designed to manage and update
+ * position data for Entities with NetEntityComponents
+ * 
+ * Is used by both the Server and the Client to manage their NetEntity instances.
+ * 
+ * J Karstin Neill    05.17.2020
+ **************************************/
+
 package ph.games.scg.system;
 
 import com.badlogic.ashley.core.Engine;
@@ -15,6 +26,9 @@ import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.NetEntityComponent;
 import ph.games.scg.component.PlayerComponent;
 import ph.games.scg.game.GameCore;
+import ph.games.scg.server.Client;
+import ph.games.scg.server.Server;
+import ph.games.scg.server.ServerCore;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.EntityFactory;
 
@@ -26,10 +40,30 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 	private Engine engine;
 	private float dtRemaining;
 	
-	public NetEntitySystem(BulletSystem bulletSystem) {
-		GameCore.client.setNetEntitySystem(this);
-		
+	private boolean serverSide;
+	
+	//Constructor used by Client-side code
+	public NetEntitySystem(BulletSystem bulletSystem, Client client) {		
 		this.bulletSystem = bulletSystem;
+		
+		client.setNetEntitySystem(this);
+		
+		//Helps the NES to know which side it is interacting from
+		this.serverSide = false;
+	}
+	
+	//Constructor used by Server-side code
+	public NetEntitySystem(BulletSystem bulletSystem, Server server) {
+		this.bulletSystem = bulletSystem;
+		
+		server.setNetEntitySystem(this);
+		
+		//Helps the NES to know which side it is interacting from
+		this.serverSide = true;
+	}
+	
+	public boolean isServerSide() {
+		return this.serverSide;
 	}
 	
 	public void applyDamage(String attacker, String attackee, float amount) {
@@ -37,7 +71,6 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		NetEntityComponent necomp=null;
 		for (Entity nentity : this.nentities) {
 			necomp = nentity.getComponent(NetEntityComponent.class);
-//			Debug.log("NetEntity: " + necomp.netEntity);
 			if (necomp.netEntity.getName().equals(attacker)) attackerNentity = nentity;
 			if (necomp.netEntity.getName().equals(attackee)) attackeeNentity = nentity;
 		}
@@ -58,21 +91,14 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		necomp = attackeeNentity.getComponent(NetEntityComponent.class);
 		necomp.netEntity.applyDamage(amount);
 		
-		if (necomp.netEntity.getHealth() <= 0f) {
-			this.engine.removeEntity(attackeeNentity);
-			this.bulletSystem.removeBody(attackeeNentity);
+		//If serverSide and attackee was killed, send \kill command to clients
+		if (this.serverSide && necomp.netEntity.getHealth() <= 0f) {
+			this.killNetEntity(attackee);
+			ServerCore.server.kill(attackee);
 		}
 	}
 	
 	public void spawnNetEntity(String name, Vector3 position) {
-//		for (Entity nentity : this.nentities) {
-//			NetEntityComponent necomp = nentity.getComponent(NetEntityComponent.class);
-//			//Check to see if we already have a NetEntity with this name
-//			if (necomp.netEntity.getName().equals(name)) {
-//				
-//			}
-//		}
-		
 		Entity nentity=null;
 		
 		//TODO: Quick fix for now, make more general later
@@ -82,7 +108,28 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		this.engine.addEntity(nentity);
 	}
 	
-	public void updateNetEntity(String name, Vector3 moveVector, float facing, float deltaTime) {
+	public void updatePosition(String name, Vector3 position) {
+		NetEntityComponent necomp=null;
+		
+		//Search through entities for a match
+		boolean match = false;
+		for (Entity nentity : this.nentities) {
+			necomp = nentity.getComponent(NetEntityComponent.class);
+			if (necomp.netEntity.hasName(name)) {
+				match = true;
+				break;
+			}
+		}
+		
+		if (!match) {
+			Debug.warn("Failed to update NetEntity position. No NetEntity with name was found: " + name);
+			return;
+		}
+		
+		necomp.netEntity.setPosition(position);
+	}
+	
+	public void queueMovement(String name, Vector3 moveVector, float facing, float deltaTime) {
 		NetEntityComponent necomp=null;
 		
 		//Search through entities for a match

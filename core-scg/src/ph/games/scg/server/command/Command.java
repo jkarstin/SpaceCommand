@@ -15,6 +15,7 @@ public abstract class Command implements ILoggable {
 		LOGOUT,
 		SAY,
 		TELL,
+		POSITION,
 		MOVE,
 		SPAWN,
 		KILL,

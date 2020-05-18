@@ -7,19 +7,17 @@ import ph.games.scg.screen.BaseScreen;
 
 public class ServerScreen extends BaseScreen {
 	
-	private Server gameServer;
 	private ServerUI serverUI;
 	
 	@Override
 	protected void initialize() {
-		this.gameServer = new Server(21595);
-		this.serverUI = new ServerUI(this.gameServer);
-		this.gameServer.open();
+		this.serverUI = new ServerUI();
+		ServerCore.server.open();
 	}
 
 	@Override
 	protected void update(float dt) {
-		this.gameServer.update(dt);
+		ServerCore.server.update(dt);
 		this.serverUI.update(dt);
 		
 		Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
@@ -30,7 +28,7 @@ public class ServerScreen extends BaseScreen {
 	
 	@Override
 	public void dispose() {
-		this.gameServer.close();
+		ServerCore.server.close();
 	}
 
 }

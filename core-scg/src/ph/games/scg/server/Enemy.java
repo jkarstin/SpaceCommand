@@ -9,6 +9,11 @@ public class Enemy extends NetEntity {
 	}
 	
 	@Override
+	public boolean hasName(String name) {
+		return this.name.equals(name);
+	}
+	
+	@Override
 	public void resetHealth() {
 		this.health = 100f;
 	}
