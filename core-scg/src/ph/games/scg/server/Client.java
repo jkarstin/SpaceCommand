@@ -1,3 +1,15 @@
+/************************************************
+ * Client.java
+ * 
+ * The local game network connection point. Allows sending and receiving of network
+ * commands to communicate changes to Game environment. Limit one per Game instance & User
+ * 
+ * TODO: Change primary function of Client to reflecting state changes
+ * made in Server's engine simulation. Do not use to update non-local entities.
+ * 
+ * J Karstin Neill    05.24.2020
+ ************************************************/
+
 package ph.games.scg.server;
 
 import java.io.IOException;
@@ -383,7 +395,6 @@ public class Client implements Disposable {
 		return count;
 	}
 	
-	//TODO: Carry out commands delivered by Server to update world state
 	private void executeServerCommands() {
 		if (this.gameWorld == null || this.user == null) return;
 		
