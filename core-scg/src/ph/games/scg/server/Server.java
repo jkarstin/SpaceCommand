@@ -45,14 +45,14 @@ import ph.games.scg.util.ILoggable;
 
 public class Server implements ILoggable {
 	
-	public static /*final*/ String SERVER_IP = "192.168.1.2";
+	public static /*final*/ String SERVER_IP;// = "192.168.1.2";
 	public static final int SERVER_PORT = 21595;
 	private static final int SO_TIMEOUT = 50;
 	private static final float ROLL_CALL_FREQUENCY = 1f;
 	private static final float SEND_FREQUENCY = 2.4f;
 	
 	private static final int BYTE_BUFFER_SIZE = 64;
-	private static final int VERSION_LO = 5;
+	private static final int VERSION_LO = 6;
 	private static final int VERSION_HI = 0;
 	
 	private ServerUI serverUI;
@@ -200,7 +200,7 @@ public class Server implements ILoggable {
 		//Logout and close any UserSocks still flagged from last Roll Call
 		for (UserSock usersock : this.usersocks) {
 			if (usersock.getRC()) {
-				Debug.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
+				Debug.warn("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
 				this.serverUI.log("UserSock did not reply to Roll Call. Logging out User and closing Socket: " + usersock);
 				
 				LogoutCommand logoutcmd = new LogoutCommand(usersock.getUser().getName());
@@ -249,19 +249,41 @@ public class Server implements ILoggable {
 	private void receiveCommands() {
 		if (!this.isOpen()) return;
 		
-		//Process admin commands
+		/*** PHASE 1: PROCESS ADMIN MESSAGES ***/
+		
+		//Process server admin messages
 		for (String adminMessage : this.adminMessages) {
+			
+			//TODO: Revisit this when you have time: Letting the Command class convert strings to Command objects (outsource)
+//			Command cmd = Command.parseCommand(adminMessage);
+//			
+//			if (cmd != null) this.commandQ.add(cmd);
+			
 			this.stoker = new StringTokenizer(adminMessage);
 			String token;
 			
 			String name = "";
 			String target = "";
 			String message = "";
-			float amount = 0f;
 			while ((token = pullToken()) != null) {
 				switch (token) {
+				case "\\rc":
+					//Unsupported
+					Debug.warn("Unsupported or unrecognized command delivered: " + token);
+					break;
+					
+				case "\\login":
+					//Unsupported
+					Debug.warn("Unsupported or unrecognized command delivered: " + token);
+					break;
+				
 				case "\\version":
 					this.commandQ.add(new VersionCommand(null));
+					break;
+					
+				case "\\logout":
+					//Unsupported
+					Debug.warn("Unsupported or unrecognized command delivered: " + token);
 					break;
 					
 				case "\\say":
@@ -281,6 +303,36 @@ public class Server implements ILoggable {
 						//Queue \tell command to target username
 						this.commandQ.add(new TellCommand(null, name, message));
 					}
+					break;
+					
+				case "\\spawn":
+					name = pullToken();
+					
+					if (name == null) {
+						Debug.warn("Invalid use of \\spawn command. Requires name value");
+						break;
+					}
+					
+					message = pullToken();
+					if (message == null) {
+						Debug.warn("Invalid use of \\spawn command. Requires position values");
+						break;
+					}
+					
+					this.commandQ.add(new SpawnCommand(name, message));
+					
+					break;
+					
+				case "\\kill":
+					name = pullToken();
+					
+					if (name == null) {
+						Debug.warn("Invalid use of \\kill command. Requires name value");
+						break;
+					}
+					
+					this.commandQ.add(new KillCommand(name));
+					
 					break;
 					
 				case "\\pos":
@@ -312,36 +364,6 @@ public class Server implements ILoggable {
 					}
 					
 					this.commandQ.add(new MoveCommand(name, message));
-					
-					break;
-					
-				case "\\spawn":
-					name = pullToken();
-					
-					if (name == null) {
-						Debug.warn("Invalid use of \\spawn command. Requires name value");
-						break;
-					}
-					
-					message = pullToken();
-					if (message == null) {
-						Debug.warn("Invalid use of \\spawn command. Requires position values");
-						break;
-					}
-					
-					this.commandQ.add(new SpawnCommand(name, message));
-					
-					break;
-					
-				case "\\kill":
-					name = pullToken();
-					
-					if (name == null) {
-						Debug.warn("Invalid use of \\kill command. Requires name value");
-						break;
-					}
-					
-					this.commandQ.add(new KillCommand(name));
 					
 					break;
 					
@@ -391,14 +413,17 @@ public class Server implements ILoggable {
 					break;
 					
 				default:
-					Debug.log("Unsupported or unrecognized command delivered: " + token);
+					Debug.warn("Unsupported or unrecognized command delivered: " + token);
 					break;
 				}
 			}
 		}
 		this.adminMessages.clear();
 		
-		//Attempt to read in server messages
+		
+		/*** PHASE 2: READ FROM CLIENTS ***/
+		
+		//Attempt to read in server client messages
 		for (Socket sock : this.socks) {
 			
 			//Attempt to get messages
@@ -451,10 +476,13 @@ public class Server implements ILoggable {
 			}
 			catch (IOException e) { e.printStackTrace(); }
 			
-			//Process external (client) commands
+			
+			/*** PHASE 3: PROCESS CLIENT MESSAGES ***/
+			
+			//Process server client message
 			for (String message : this.messages) {
 
-				//TODO: Revisit this when you have time
+				//TODO: Revisit this when you have time: Letting the Command class convert strings to Command objects (outsource)
 //				Command cmd = Command.parseCommand(message);
 //				
 //				if (cmd != null) this.commandQ.add(cmd);
@@ -505,6 +533,16 @@ public class Server implements ILoggable {
 							//Queue \tell command to target username
 							this.commandQ.add(new TellCommand(sock, name, args));
 						}
+						break;
+						
+					case "\\spawn":
+						//Unsupported
+						Debug.warn("Unsupported or unrecognized command delivered: " + token);
+						break;
+						
+					case "\\kill":
+						//Unsupported
+						Debug.log("Unsupported or unrecognized command delivered: " + token);
 						break;
 						
 					case "\\pos":
@@ -558,8 +596,13 @@ public class Server implements ILoggable {
 						
 						break;
 						
+					case "\\damage":
+						//Unsupported
+						Debug.warn("Unsupported or unrecognized command delivered: " + token);
+						break;
+						
 					default:
-						Debug.log("Unsupported or unrecognized command delivered: " + token);
+						Debug.warn("Unsupported or unrecognized command delivered: " + token);
 						break;
 					}
 				}
@@ -631,7 +674,7 @@ public class Server implements ILoggable {
 					}
 					
 					if (!success) {
-						Debug.log("Login attempt failed: Incorrect username or password");
+						Debug.warn("Login attempt failed: Incorrect username or password");
 						this.serverUI.log("Login attempt failed: Incorrect username or password");
 						Debug.logv(this.registeredUsers);
 						
@@ -662,12 +705,13 @@ public class Server implements ILoggable {
 				String version = "Valid Version " + VERSION_HI + "." + VERSION_LO;
 				//Admin command
 				if (command.getSock() == null) {
+					//Log to ServerUI
 					this.serverUI.log("[ADMIN] " + version);
 				}
 				
 				//Client command
 				else {
-					//Verify User is logged in
+					//Verify requesting User is logged in
 					user = null;
 					for (UserSock usersock : this.usersocks) {
 						if (usersock.getSock() == versioncmd.getSock()) {
@@ -676,6 +720,12 @@ public class Server implements ILoggable {
 						}
 					}
 					
+					if (user == null) {
+						Debug.warn("Failed to process command. Requesting Socket has no active User: " + command);
+						break;
+					}
+					
+					//Send version info to requesting User
 					this.directMessageQ.add(new UserMessage(null, version, user));
 				}
 				
@@ -706,7 +756,7 @@ public class Server implements ILoggable {
 						}
 					}
 					
-					if (!success) Debug.log("Failed to logout. Requesting Socket has no active User: " + command.getSock());
+					if (!success) Debug.warn("Failed to logout. Requesting Socket has no active User: " + command.getSock());
 					
 					//Broadcast logout message to all connected clients to update their world state
 					if (user != null) {
@@ -737,7 +787,7 @@ public class Server implements ILoggable {
 					}
 					
 					if (user == null) {
-						Debug.log("Failed to broadcast message. Requesting Socket has no active User: " + saycmd.getSock() + " [" + saycmd.getMessage() + "]");
+						Debug.warn("Failed to broadcast message. Requesting Socket has no active User: " + saycmd.getSock() + " [" + saycmd.getMessage() + "]");
 						break;
 					}
 						
@@ -761,7 +811,7 @@ public class Server implements ILoggable {
 					}
 					
 					if (user == null) {
-						Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
+						Debug.warn("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
 						break;
 					}
 					
@@ -781,7 +831,7 @@ public class Server implements ILoggable {
 					}
 					
 					if (user == null) {
-						Debug.log("Failed to send message. Requesting Socket has no active User: " + tellcmd.getSock() + " [" + tellcmd.getMessage() + "]");
+						Debug.warn("Failed to send message. Requesting Socket has no active User: " + tellcmd.getSock() + " [" + tellcmd.getMessage() + "]");
 						break;
 					}
 					
@@ -797,7 +847,7 @@ public class Server implements ILoggable {
 					if (user != other) this.directMessageQ.add(new UserMessage(user, tellcmd.getMessage(), user));
 					
 					if (other == null) {
-						Debug.log("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
+						Debug.warn("Failed to send message. No active User with username: " + tellcmd.getToUsername() + " [" + tellcmd.getMessage() + "]");
 						break;
 					}
 					
@@ -860,7 +910,7 @@ public class Server implements ILoggable {
 				}
 				
 				if (target == null) {
-					Debug.log("Cannot kill target. No active User with username: " + killcmd.getName());
+					Debug.warn("Cannot kill target. No active NetEntity with name: " + killcmd.getName());
 					break;
 				}
 				
@@ -932,7 +982,7 @@ public class Server implements ILoggable {
 					}
 					
 					if (attacker == null) {
-						Debug.warn("Failed to attack. Attacker has not active NetworkEntity: " + attackcmd);
+						Debug.warn("Failed to attack. Attacker has no active NetEntity: " + attackcmd);
 						break;
 					}
 					
@@ -944,7 +994,7 @@ public class Server implements ILoggable {
 					}
 					
 					if (attackee == null) {
-						Debug.warn("Failed to attack. Attackee has not active NetworkEntity: " + attackcmd);
+						Debug.warn("Failed to attack. Attackee has no active NetEntity: " + attackcmd);
 						break;
 					}
 					
@@ -964,7 +1014,7 @@ public class Server implements ILoggable {
 					}
 					
 					if (attacker == null) {
-						Debug.warn("Failed to attack. Attacker has not active NetworkEntity: " + attackcmd);
+						Debug.warn("Failed to attack. Attacker has no active NetworkEntity: " + attackcmd);
 						break;
 					}
 					
@@ -976,7 +1026,7 @@ public class Server implements ILoggable {
 					}
 					
 					if (attackee == null) {
-						Debug.warn("Failed to attack. Attackee has not active NetworkEntity: " + attackcmd);
+						Debug.warn("Failed to attack. Attackee has no active NetEntity: " + attackcmd);
 						break;
 					}
 					
