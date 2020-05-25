@@ -126,8 +126,8 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		this.camera.position.set(translation.x, translation.y, translation.z);
 		this.camera.update(true);
 		
-		//Tell server where the player is located
-		GameCore.client.updatePosition(translation);
+//		//Tell server where the player is located
+//		GameCore.client.updatePosition(translation);
 		
 		//If movement was input, tell server what movement occurred
 		if (recordMovement) {

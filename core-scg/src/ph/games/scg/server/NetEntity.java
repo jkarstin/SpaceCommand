@@ -16,10 +16,13 @@ public abstract class NetEntity implements ILoggable {
 	public final int NET_ID;
 	
 	private NET_TYP type;
+	//NOTE: Needs to be one continuous token with no spaces
 	protected String name;
 	
 	protected float health;
 	protected float strength;
+	
+	protected boolean spawned;
 	
 	protected float facing;
 	protected Vector3 position;
@@ -33,6 +36,8 @@ public abstract class NetEntity implements ILoggable {
 		this.resetHealth();
 		this.strength = 10f;
 		
+		this.spawned = false;
+		
 		this.facing = 0f;
 		this.position = new Vector3();
 	}
@@ -44,6 +49,12 @@ public abstract class NetEntity implements ILoggable {
 	public abstract void setPosition(Vector3 position);
 	public abstract void moveBy(Vector3 movement);
 	
+	public boolean hasType(NET_TYP type) {
+		if (type == null) return false;
+		
+		return this.type == type;
+	}
+	
 	public String getName() {
 		return this.name;
 	}
@@ -54,6 +65,14 @@ public abstract class NetEntity implements ILoggable {
 	
 	public float getStrength() {
 		return this.strength;
+	}
+	
+	public void setSpawned(boolean state) {
+		this.spawned = state;
+	}
+	
+	public boolean isSpawned() {
+		return this.spawned;
 	}
 	
 	public Vector3 getPosition() {

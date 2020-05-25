@@ -14,7 +14,7 @@ import com.badlogic.ashley.core.Component;
 public class PlayerComponent implements Component {
 
 	public static final float moveSpeed = 10f;
-	public static final float turnSpeed = 10f;
+	public static final float turnSpeed = 1f;
 	public static final float jumpSpeed = 10f;
 
 	public static int score;

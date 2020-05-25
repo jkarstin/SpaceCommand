@@ -23,7 +23,9 @@ import java.util.StringTokenizer;
 
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.bullet.Bullet;
 
+import ph.games.scg.server.NetEntity.NET_TYP;
 import ph.games.scg.server.command.AttackCommand;
 import ph.games.scg.server.command.Command;
 import ph.games.scg.server.command.Command.CMD_TYP;
@@ -39,6 +41,7 @@ import ph.games.scg.server.command.SpawnCommand;
 import ph.games.scg.server.command.TellCommand;
 import ph.games.scg.server.command.VersionCommand;
 import ph.games.scg.system.BulletSystem;
+import ph.games.scg.system.EnemySystem;
 import ph.games.scg.system.NetEntitySystem;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.ILoggable;
@@ -130,9 +133,13 @@ public class Server implements ILoggable {
 		this.broadcastQ = new ArrayList<UserMessage>();
 		this.closeQ = new ArrayList<UserSock>();
 		
+		//Load in Bullet.dll
+		Bullet.init();
+		
 		this.servEngine = new Engine();
 		this.servEngine.addSystem(this.bulletSystem = new BulletSystem());
 		this.servEngine.addSystem(this.NES = new NetEntitySystem(this.bulletSystem));
+		this.servEngine.addSystem(new EnemySystem());
 	}
 	
 	public void open() {
@@ -169,7 +176,7 @@ public class Server implements ILoggable {
 		//Accept new clients
 		this.acceptClients();
 		//Look for commands from clients
-		this.receiveCommands();
+		this.receiveMessages();
 		//Execute on commands received
 		this.executeCommands();
 		//Broadcast server-wide messages
@@ -184,6 +191,14 @@ public class Server implements ILoggable {
 	
 	public void queueAdminMessage(String adminMessage) {
 		this.adminMessages.add(adminMessage);
+	}
+	
+	public void move(String name, Vector3 movement, float theta, float dt) {
+		this.commandQ.add(new MoveCommand(null, name, movement, theta, dt));
+	}
+	
+	public void spawnEnemy(String name) {
+		this.commandQ.add(new SpawnCommand(null, NET_TYP.ENEMY, name, null));
 	}
 	
 	public void kill(String name) {
@@ -269,10 +284,6 @@ public class Server implements ILoggable {
 					user = reguser;
 					this.usersocks.add(new UserSock(reguser, logincmd.getSock()));
 					this.netEntities.add(user);
-					
-					//Spawn a new Entity with User's name
-					doSpawn(new SpawnCommand(null, user.getName(), PLAYER_SPAWN_POSITION));
-					
 					success = true;
 					break;
 				}
@@ -290,8 +301,7 @@ public class Server implements ILoggable {
 			
 			//Broadcast login message to all connected clients to update their world state
 			if (user != null) {
-				String message = "\\login " + user.getName();
-				this.broadcastQ.add(new UserMessage(message));
+				this.broadcastQ.add(new UserMessage(new LoginCommand(user.getName())));
 			}
 			
 			//Send direct server message to sender to "login" all currently logged in users
@@ -299,8 +309,12 @@ public class Server implements ILoggable {
 				//Skip the sending user
 				if (usersock.getSock() == logincmd.getSock()) continue;
 				
-				this.directMessageQ.add(new UserMessage(new LoginCommand(null, usersock.getUser().getName())));
+				this.directMessageQ.add(new UserMessage(new LoginCommand(usersock.getUser().getName()), user));
+				this.directMessageQ.add(new UserMessage(new SpawnCommand(null, NET_TYP.USER, usersock.getUser().getName(), usersock.getUser().getPosition()), user));
 			}
+			
+			//Spawn a new Entity with User's name
+			doSpawn(new SpawnCommand(null, NET_TYP.USER, user.getName(), PLAYER_SPAWN_POSITION));
 		}
 		
 		return true;
@@ -531,6 +545,8 @@ public class Server implements ILoggable {
 				return false;
 			}
 			
+			this.NES.queueMovement(movecmd.getName(), movecmd.getMoveVector(), movecmd.getFacing(), movecmd.getDeltaTime());
+			
 			//Broadcast move message to all connected clients to update their world state
 			this.broadcastQ.add(new UserMessage(movecmd));
 		}
@@ -548,19 +564,39 @@ public class Server implements ILoggable {
 			//Check to see if NetEntity should be an existing User or a new Enemy
 			String name = spawncmd.getName();
 			
-			boolean match = false;
+			NetEntity netEntity=null;
 			for (NetEntity ne : this.netEntities) {
 				if (ne.hasName(name)) {
-					match = true;
+					netEntity = ne;
 					break;
 				}
 			}
 			
-			//If no active NetEntity was found, create a new enemy
-			if (!match) {
-				this.netEntities.add(new Enemy(name));
+			NET_TYP spawnType = spawncmd.getSpawnType();
+			
+			//If no active NetEntity was found
+			if (netEntity == null) {
+				//Create a new entity based on spawnType
+				switch (spawnType) {
+				case USER:
+					netEntity = new User(name);
+					break;
+				case ENEMY:
+					netEntity = new Enemy(name);
+					break;
+				}
+				
+				//Add to active netEntities
+				this.netEntities.add(netEntity);
 			}
 			
+			//Otherwise, check spawn type against netEntity type
+			else if (!netEntity.hasType(spawnType)) {
+				Debug.warn("Cannot spawn NetEntity. Spawn type does not match found NetEntity type: " + netEntity + " " + spawnType);
+				return false;
+			}
+			
+			//Grab spawn position
 			Vector3 position = spawncmd.getPosition();
 			
 			//If no specified spawn position, generate a random one
@@ -570,8 +606,11 @@ public class Server implements ILoggable {
 				position = new Vector3(random.nextFloat()*30f+10f, 20f, random.nextFloat()*30f+14f);	
 			}
 			
+			//Set netEntity position to spawn position
+			netEntity.setPosition(position);
+			
 			//Broadcast spawn message to all connected clients to update their world state
-			this.broadcastQ.add(new UserMessage((new SpawnCommand(null, name, position))));
+			this.broadcastQ.add(new UserMessage((new SpawnCommand(null, spawnType, name, position))));
 		}				
 		
 		//Client command
@@ -735,7 +774,7 @@ public class Server implements ILoggable {
 		}
 	}
 	
-	private void receiveCommands() {
+	private void receiveMessages() {
 		if (!this.isOpen()) return;
 		
 		/*** PHASE 1: PROCESS ADMIN MESSAGES ***/
@@ -827,8 +866,13 @@ public class Server implements ILoggable {
 					break;
 					
 				case "\\spawn":
-					name = pullToken();
+					target = pullToken();
+					if (target == null) {
+						Debug.warn("Invalid use of \\spawn command. Requires spawn type value");
+						break;
+					}
 					
+					name = pullToken();
 					if (name == null) {
 						Debug.warn("Invalid use of \\spawn command. Requires name value");
 						break;
@@ -840,7 +884,7 @@ public class Server implements ILoggable {
 						break;
 					}
 					
-					this.commandQ.add(new SpawnCommand(name, message));
+					this.commandQ.add(new SpawnCommand(target, name, message));
 					
 					break;
 					
@@ -1377,6 +1421,7 @@ public class Server implements ILoggable {
 		public UserMessage(User user, String message) { this(user, message, null); }
 		public UserMessage(String message) { this(null, message, null); }
 		public UserMessage(Command command) { this(null, command.toCommandString(), null); }
+		public UserMessage(Command command, User target) { this(null, command.toCommandString(), target); }
 		
 		public User getUser() {
 			return this.user;

@@ -221,12 +221,14 @@ public class GameWorld {
 	
 	private void addEntities() {
 		this.engine.addEntity(EntityFactory.loadScene(10f, 10.5f, 18f));
-		createPlayer(10f, 14f, 21f);
+//		createPlayer(10f, 14f, 21f);
 //		createSpaceship(2f, 3f, 1f);
 	}
 
-	private void createPlayer(float x, float y, float z) {
-		this.player = EntityFactory.createPlayer(this.bulletSystem, x, y, z);
+	public void createPlayer(Vector3 spawnPosition) {
+		if (spawnPosition == null) return;
+		
+		this.player = EntityFactory.createPlayer(this.bulletSystem, spawnPosition.x, spawnPosition.y, spawnPosition.z);
 		this.engine.addEntity(this.player);
 		this.gun = EntityFactory.loadGun(4f, -4f, -7f);
 		this.engine.addEntity(this.gun);

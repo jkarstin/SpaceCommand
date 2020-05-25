@@ -64,13 +64,15 @@ public class RenderSystem extends EntitySystem {
       
       this.batch.end();
       
-      //Draw this.gun model
-      //Clear depth buffer in order to display gun on a different camera (I guess...)
-      Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
-      this.batch.begin(this.gCam);
-      this.batch.render(this.gun.getComponent(ModelComponent.class).instance);
-      this.gun.getComponent(AnimationComponent.class).update(dt);
-      this.batch.end();
+      if (this.gun != null) {
+	      //Draw this.gun model
+	      //Clear depth buffer in order to display gun on a different camera (I guess...)
+	      Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
+	      this.batch.begin(this.gCam);
+	      this.batch.render(this.gun.getComponent(ModelComponent.class).instance);
+	      this.gun.getComponent(AnimationComponent.class).update(dt);
+	      this.batch.end();
+      }
    }
    
    public void resize(int width, int height) {

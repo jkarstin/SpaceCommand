@@ -26,6 +26,7 @@ import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.NetEntityComponent;
 import ph.games.scg.component.PlayerComponent;
 import ph.games.scg.server.Client;
+import ph.games.scg.server.NetEntity.NET_TYP;
 import ph.games.scg.server.ServerCore;
 import ph.games.scg.util.Debug;
 import ph.games.scg.util.EntityFactory;
@@ -89,17 +90,23 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		
 		//If serverSide and attackee was killed, send \kill command to clients
 		if (this.serverSide && necomp.netEntity.getHealth() <= 0f) {
-//			this.killNetEntity(attackee);
 			ServerCore.server.kill(attackee);
 		}
 	}
 	
-	public void spawnNetEntity(String name, Vector3 position) {
+	public void spawnNetEntity(NET_TYP spawnType, String name, Vector3 position) {
+		if (spawnType == null || name == null || position == null) return;
+		
 		Entity nentity=null;
 		
-		//TODO: Quick fix for now, make more general later
-		if (name.contains("enemy_")) nentity = EntityFactory.createEnemy(bulletSystem, name, position.x, position.y, position.z);
-		else nentity = EntityFactory.createUserEntity(this.bulletSystem, name, position.x, position.y, position.z);
+		switch (spawnType) {
+		case USER:
+			nentity = EntityFactory.createUserEntity(this.bulletSystem, name, position.x, position.y, position.z);
+			break;
+		case ENEMY:
+			nentity = EntityFactory.createEnemy(this.bulletSystem, name, position.x, position.y, position.z);
+			break;
+		}
 		
 		this.engine.addEntity(nentity);
 	}

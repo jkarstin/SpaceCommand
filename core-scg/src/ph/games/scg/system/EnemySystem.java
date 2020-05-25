@@ -13,6 +13,7 @@ import ph.games.scg.component.EnemyComponent;
 import ph.games.scg.component.ModelComponent;
 import ph.games.scg.component.NetEntityComponent;
 import ph.games.scg.game.GameCore;
+import ph.games.scg.server.ServerCore;
 
 public class EnemySystem extends EntitySystem implements EntityListener {
 	
@@ -32,7 +33,7 @@ public class EnemySystem extends EntitySystem implements EntityListener {
 			//Make sure to only spawn one and wait for spawn to come in
 			if (spawnFlag) {
 				//Request new enemy spawn
-				GameCore.client.spawnEnemy("enemy_" + ENEMY_COUNTER++);
+				ServerCore.server.spawnEnemy("enemy_" + ENEMY_COUNTER++);
 				spawnFlag = false;
 			}
 			return;
@@ -63,7 +64,7 @@ public class EnemySystem extends EntitySystem implements EntityListener {
 			Vector3 movement = new Vector3(0f, 0f, 1f);
 			movement.rotate(Vector3.Y, theta).scl(3f * dt);
 			
-			GameCore.client.move(necomp.netEntity.getName(), movement, theta, dt);
+			ServerCore.server.move(necomp.netEntity.getName(), movement, theta, dt);
 			
 			//TODO: Works, but happens too fast. Rapidly reduces NetEntity health to zero, and is currently not entirely connected to Player, so once zero health is reached, player control freezes
 //			if (distance.len() <= ecomp.reach) GameCore.client.attack(necomp.netEntity.getName(), ecomp.target.getComponent(NetEntityComponent.class).netEntity.getName());
