@@ -115,21 +115,34 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		NetEntityComponent necomp=null;
 		
 		//Search through entities for a match
-		boolean match = false;
-		for (Entity nentity : this.nentities) {
-			necomp = nentity.getComponent(NetEntityComponent.class);
+		Entity nentity=null;
+		for (Entity e : this.nentities) {
+			necomp = e.getComponent(NetEntityComponent.class);
 			if (necomp.netEntity.hasName(name)) {
-				match = true;
+				nentity = e;
 				break;
 			}
 		}
 		
-		if (!match) {
+		if (nentity == null) {
 			Debug.warn("Failed to update NetEntity position. No NetEntity with name was found: " + name);
 			return;
 		}
 		
 		necomp.netEntity.setPosition(position);
+		
+		//Apply movement to nentity
+		Vector3 tmp = new Vector3();
+		Vector3 translation = new Vector3();
+		CharacterComponent ccomp = nentity.getComponent(CharacterComponent.class);
+		ModelComponent mcomp = nentity.getComponent(ModelComponent.class);
+		ccomp.ghostObject.getWorldTransform().getTranslation(tmp);
+		translation.set(position).sub(tmp);
+		mcomp.instance.transform.setTranslation(translation);
+		
+		ccomp.walkDirection.set(0f, 0f, 0f);
+		ccomp.walkDirection.add(translation);
+		ccomp.characterController.setWalkDirection(ccomp.walkDirection);
 	}
 	
 	public void queueMovement(String name, Vector3 moveVector, float facing, float deltaTime) {
@@ -232,6 +245,7 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 			
 			//Apply translation and rotation
 			position.add(translationVector);
+			nec.netEntity.setPosition(position);
 			quat.setFromAxis(Vector3.Y, currentFacing);
 			mc.instance.transform.set(position.x, position.y, position.z, quat.x, quat.y, quat.z, quat.w);
 			

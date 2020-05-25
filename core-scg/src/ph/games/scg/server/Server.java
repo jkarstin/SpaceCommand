@@ -59,6 +59,7 @@ public class Server implements ILoggable {
 	private static final int VERSION_HI = 0;
 	
 	private static final Vector3 PLAYER_SPAWN_POSITION = new Vector3(10f, 14f, 21f);
+	private static final float MAX_ACCEPTABLE_LAG_DISTANCE = 2f;
 	
 	private ServerUI serverUI;
 	
@@ -140,6 +141,9 @@ public class Server implements ILoggable {
 		this.servEngine.addSystem(this.bulletSystem = new BulletSystem());
 		this.servEngine.addSystem(this.NES = new NetEntitySystem(this.bulletSystem));
 		this.servEngine.addSystem(new EnemySystem());
+		
+		//TODO: Build environment so simulated players don't just fall through the map in the Server.
+		//TODO: Potentially create a ServerWorld class to process these state changes like GameWorld did originally.
 	}
 	
 	public void open() {
@@ -255,6 +259,17 @@ public class Server implements ILoggable {
 			for (UserSock usersock : this.usersocks) {
 				if (usersock.getSock() == rccmd.getSock()) {
 					usersock.setRC(false);
+					
+					//Update position if over acceptable distance
+					if (rccmd.getPosition() != null) {
+						Vector3 tmp = new Vector3();
+						tmp.set(rccmd.getPosition()).sub(usersock.getUser().getPosition());
+						if (tmp.len() > MAX_ACCEPTABLE_LAG_DISTANCE) {
+							usersock.getUser().setPosition(rccmd.getPosition());
+							doPosition(new PositionCommand(rccmd.getSock(), usersock.getUser().getName(), rccmd.getPosition()));
+						}
+					}
+					
 					break;
 				}
 			}
@@ -1032,7 +1047,8 @@ public class Server implements ILoggable {
 					
 					case "\\rc":
 						name = pullToken();
-						this.commandQ.add(new RollCallCommand(sock, name));
+						args = pullToken();
+						this.commandQ.add(new RollCallCommand(sock, name, args));
 					
 					case "\\login":
 						name = pullToken();

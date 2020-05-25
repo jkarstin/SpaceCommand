@@ -121,6 +121,9 @@ public class Client implements Disposable {
 	public void move(String name, Vector3 movement, float facing, float dt) {
 		if (!this.isOpen() || this.user == null) return;
 
+		Vector3 tmp = new Vector3();
+		tmp.set(this.user.getPosition()).add(movement);
+		this.user.setPosition(tmp);
 		this.outboundCommands.add(new MoveCommand(name, movement, facing, dt));
 	}
 	
@@ -328,7 +331,7 @@ public class Client implements Disposable {
 				switch (tokens[1]) {
 				case "\\rc":
 					//RollCall request, relay back to Server
-					this.commandsFromServer.add(new RollCallCommand(this.sock, null));
+					this.commandsFromServer.add(new RollCallCommand(this.sock, null, (Vector3)null));
 					deQMessages.add(message);
 					break;
 				
@@ -401,7 +404,7 @@ public class Client implements Disposable {
 			switch (command.getType()) {
 			case ROLLCALL:
 				//Relay roll call command back to server to confirm
-				this.outboundCommands.add(command);
+				this.outboundCommands.add(new RollCallCommand(this.sock, this.user.getName(), this.user.getPosition()));
 				
 				break;
 			
@@ -457,6 +460,7 @@ public class Client implements Disposable {
 				else {
 					//User to be spawned at given location
 					this.gameWorld.createPlayer(spawncmd.getPosition());
+					this.user.setPosition(spawncmd.getPosition());
 				}
 				
 				break;
