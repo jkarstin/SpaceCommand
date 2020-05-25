@@ -29,9 +29,6 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 	private final Vector3 rayFrom = new Vector3();
 	private final Vector3 rayTo = new Vector3();
 	private final Vector3 tmp = new Vector3();
-	private final float turnSpeed = 1f;
-	private final float moveSpeed = 10f;
-//	private final float jumpSpeed = 10f;
 
 	private BulletSystem bulletSystem;
 	private CharacterComponent characterComponent;
@@ -80,9 +77,9 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		float deltaY = -Gdx.input.getDeltaY() * 0.5f;
 
 		this.tmp.set(0f, 0f, 0f);
-		this.camera.rotate(this.camera.up, deltaX * this.turnSpeed);
+		this.camera.rotate(this.camera.up, deltaX * PlayerComponent.turnSpeed);
 		this.tmp.set(this.camera.direction).crs(this.camera.up).nor();
-		this.camera.direction.rotate(this.tmp, deltaY * this.turnSpeed);
+		this.camera.direction.rotate(this.tmp, deltaY * PlayerComponent.turnSpeed);
 		this.tmp.set(0f, 0f, 0f);
 		
 		this.characterComponent.characterDirection.set(0f, 0f, 1f).rot(this.modelComponent.instance.transform).nor();
@@ -91,6 +88,7 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 		Vector3 movement = new Vector3();
 		boolean recordMovement = false;
 
+		//Horizontal movement
 		if (Gdx.input.isKeyPressed(Input.Keys.W)) {
 			movement.add(this.camera.direction);
 			recordMovement = true;
@@ -108,7 +106,13 @@ public class PlayerSystem extends EntitySystem implements EntityListener {
 			recordMovement = true;
 		}
 		
-		movement.nor().scl(this.moveSpeed * dt);
+//		//Jumping movement
+//		if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+//			movement.add(tmp.set(Vector3.Y).scl(PlayerComponent.jumpSpeed));
+//			recordMovement = true;
+//		}
+		
+		movement.nor().scl(PlayerComponent.moveSpeed * dt);
 		this.characterComponent.walkDirection.add(movement);
 		this.characterComponent.characterController.setWalkDirection(this.characterComponent.walkDirection);
 

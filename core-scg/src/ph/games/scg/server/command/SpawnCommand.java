@@ -31,7 +31,7 @@ public class SpawnCommand extends Command {
 					);
 		}
 		else {
-			this.position = new Vector3();
+			this.position = null;
 		}
 	}
 	

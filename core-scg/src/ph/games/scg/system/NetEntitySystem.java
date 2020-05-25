@@ -89,7 +89,7 @@ public class NetEntitySystem extends EntitySystem implements EntityListener {
 		
 		//If serverSide and attackee was killed, send \kill command to clients
 		if (this.serverSide && necomp.netEntity.getHealth() <= 0f) {
-			this.killNetEntity(attackee);
+//			this.killNetEntity(attackee);
 			ServerCore.server.kill(attackee);
 		}
 	}
