@@ -1,9 +1,9 @@
-package ph.games.scg.server;
+package ph.games.scg._depreciated_.server;
 
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
 
-import ph.games.scg.game.GameCore;
+import ph.games.scg._depreciated_.game.GameCore;
 
 public class ServerLauncher {
 	public static void main (String[] arg) {
